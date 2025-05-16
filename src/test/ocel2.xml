@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log>
+  <globalObjects>
+    <attribute key="amount" type="float"/>
+  </globalObjects>
+
+  <globalEvents>
+    <attribute key="cost" type="float"/>
+  </globalEvents>
+
+  <events>
+    <event>
+      <activity>create_order</activity>
+      <timestamp>2023-01-01T10:00:00Z</timestamp>
+      <omap>
+        <oid>o1</oid>
+      </omap>
+      <vmap>
+        <attribute key="cost" type="float">100.0</attribute>
+      </vmap>
+    </event>
+  </events>
+
+  <objects>
+    <object>
+      <type>order</type>
+      <oid>o1</oid>
+      <vmap>
+        <attribute key="amount" type="float">150.0</attribute>
+      </vmap>
+    </object>
+  </objects>
+</log>

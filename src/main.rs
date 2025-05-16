@@ -1,3 +1,10 @@
+mod context;
+mod evaluator;
+mod types_for_ocpm;
+mod test;
+mod utils;
+
 fn main() {
-    println!("Hello, world!");
+    
+    test::test_eog();
 }

@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+process_mining = { git = "https://github.com/aarkue/rust4pm.git", branch = "main" }
+chrono = "0.4.41"
+
+rustworkx-core = "0.16"
