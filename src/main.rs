@@ -6,5 +6,5 @@ mod utils;
 
 fn main() {
     
-    test::test_eog();
+    test::test_context_and_bindings();
 }
