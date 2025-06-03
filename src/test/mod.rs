@@ -10,7 +10,7 @@ use rustworkx_core::petgraph::dot::{Config, Dot};
 
 
 use crate::context;
-use crate::context::contruct_event_object_graph;
+use crate::context::{construct_event_object_graph, get_contexts_and_bindings, get_event_presets};
 
 pub fn test_eog() {
     let ocel = get_test_ocel();
@@ -19,7 +19,7 @@ pub fn test_eog() {
 
     //println!("OCEL: {:?}", ocel);
 
-    let eog = contruct_event_object_graph(&ocel);
+    let eog = construct_event_object_graph(&ocel);
     
     //visualize graph (export)
     let dot = Dot::with_config(&eog, &[Config::EdgeNoLabel]);
@@ -31,13 +31,24 @@ pub fn test_eog() {
 
     println!("graph saved in {:?}; run with dot -Tpng graph.dot -o graph.png", file);
     
-    let presets = context::get_event_presets(&ocel);
-    print_presets(&presets);
+    
+}
+
+pub fn test_context_and_bindings() {
+
+    print_presets(&get_event_presets(&get_test_ocel()));
+    
+    let (ctxt, bind) = get_contexts_and_bindings(&get_test_ocel());
+    
+    
+    
+    println!("Contexts: {:?}", ctxt);
+    print!("--------------------\n");
+    println!("Bindings: {:?}", bind);
 }
 
 
-
-fn print_presets(presets: &HashMap<String, Vec<String>>) {
+fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
     for preset in presets {
         println!("Preset: {:?}", preset);
     }
@@ -131,6 +142,15 @@ fn get_test_ocel() -> pm::OCEL {
                 ],
             },
             OCELObject {
+                id: "p2".to_string(),
+                object_type: "plane".to_string(),
+                attributes: vec![
+                ],
+                relationships: vec![
+                    OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                ],
+            },
+            OCELObject {
                 id: "b1".to_string(),
                 object_type: "baggage".to_string(),
                 attributes: vec![
@@ -146,6 +166,24 @@ fn get_test_ocel() -> pm::OCEL {
                 ],
                 relationships: vec![
                     OCELRelationship { qualifier: "baggage".to_string(), object_id: "b2".to_string() },
+                ],
+            },
+            OCELObject {
+                id: "b3".to_string(),
+                object_type: "baggage".to_string(),
+                attributes: vec![
+                ],
+                relationships: vec![
+                    OCELRelationship { qualifier: "baggage".to_string(), object_id: "b3".to_string() },
+                ],
+            },
+            OCELObject {
+                id: "b4".to_string(),
+                object_type: "baggage".to_string(),
+                attributes: vec![
+                ],
+                relationships: vec![
+                    OCELRelationship { qualifier: "baggage".to_string(), object_id: "b4".to_string() },
                 ],
             },
         ],
