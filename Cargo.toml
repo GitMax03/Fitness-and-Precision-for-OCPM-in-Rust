@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-process_mining = { git = "https://github.com/aarkue/rust4pm.git", branch = "main" }
+process_mining = { git = "https://github.com/aarkue/rust4pm.git", branch = "main", features = ["ocel-sqlite"] }
 chrono = "0.4.41"
 
 rustworkx-core = "0.16"
 counter = "0.6.0"
+uuid = { version = "1.16.0", features = ["v4"] }

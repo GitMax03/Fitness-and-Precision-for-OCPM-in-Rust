@@ -4,16 +4,34 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::fs::File;
 use std::ops::Add;
+use std::string::ToString;
 use pm::ocel::ocel_struct::*;
 use chrono::{FixedOffset, TimeZone};
 use rustworkx_core::petgraph::dot::{Config, Dot};
 
 
-use crate::context;
-use crate::context::{construct_event_object_graph, get_contexts_and_bindings, get_event_presets};
+use crate::enabled_log_act;
+use crate::enabled_log_act::{construct_event_object_graph, get_contexts_and_bindings, get_enabled_log_activities, get_event_presets};
 
-pub fn test_eog() {
+
+fn get_test_ocel() -> pm::OCEL {
+    //get_test_ocel_sql()
+    get_test_ocel_small()
+}
+
+pub fn test_enabled_log_activities() {
     let ocel = get_test_ocel();
+    
+    let (contexts, bindings) = get_contexts_and_bindings(&ocel);
+    println!("Contexts: {:?}", contexts);
+    //get enabled log activities
+    let ela = get_enabled_log_activities(&ocel, &contexts);
+    
+    println!("Enabled Log Activities: {:?}", ela);
+    
+}
+pub fn test_eog() {
+    let ocel = get_test_ocel_sql();
 
     println!("start test");
 
@@ -29,14 +47,14 @@ pub fn test_eog() {
     let mut file = File::create("src/test/vis.dot").expect("error");
     write!(file, "{:?}", dot).expect("error");
 
-    println!("graph saved in {:?}; run with dot -Tpng graph.dot -o graph.png", file);
+    println!("graph saved in {:?}; run with: dot -Tpng vis.dot -o vis.png", file);
     
     
 }
 
 pub fn test_context_and_bindings() {
 
-    print_presets(&get_event_presets(&get_test_ocel()));
+    //print_presets(&get_event_presets(&get_test_ocel()));
     
     let (ctxt, bind) = get_contexts_and_bindings(&get_test_ocel());
     
@@ -55,7 +73,14 @@ fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
 }
 
 
-fn get_test_ocel() -> pm::OCEL {
+
+fn get_test_ocel_sql() -> pm::OCEL{
+    pm::import_ocel_sqlite_from_path("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/logistics.sqlite")
+        .expect("Error importing OCEL from SQLite database")
+}
+
+
+fn get_test_ocel_small() -> pm::OCEL {
     //create test ocel
 
     let empty_attribute = OCELTypeAttribute {
