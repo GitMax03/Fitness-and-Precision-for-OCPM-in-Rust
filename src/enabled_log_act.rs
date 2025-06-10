@@ -71,6 +71,7 @@ pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
 
 //TODO: not fully tested
 pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
+    //order important?
     println!("constructing presets ...");
 
     //get preset => all events that are connected to event_id in the eog

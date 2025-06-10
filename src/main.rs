@@ -7,7 +7,9 @@ mod enabled_model_act;
 
 fn main() {
     
-    //test::test_enabled_log_activities();
+    test::test_enabled_log_activities();
     test::test_context_and_bindings();
+    test::test_event_presets();
+    test::test_binding_sequence();
     //test::test_eog();
 }
