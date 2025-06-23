@@ -3,21 +3,65 @@ extern crate process_mining as pm;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::fs::File;
+use std::io::ErrorKind::StaleNetworkFileHandle;
 use std::ops::Add;
 use std::string::ToString;
+use bimap::BiMap;
 use pm::ocel::ocel_struct::*;
 use chrono::{FixedOffset, TimeZone};
+use petgraph::adj::NodeIndex;
+use petgraph::graph::DiGraph;
 use rustworkx_core::petgraph::dot::{Config, Dot};
 
 
 use crate::{enabled_log_act, enabled_model_act};
 use crate::enabled_log_act::{construct_event_object_graph, get_contexts_and_bindings, get_enabled_log_activities, get_event_presets};
+use crate::structs_for_ocpm::*;
 
 
-fn get_test_ocel() -> pm::OCEL {
+pub fn get_test_ocel() -> pm::OCEL {
     //get_test_ocel_sql()
     get_test_ocel_small()
 }
+
+pub fn test_enabled_model_act() {
+    let ocel = get_test_ocel_small();
+    let ocpn = get_test_ocpn_small();
+    
+    //get contexts and bindings
+    let (contexts, bindings) = get_contexts_and_bindings(&ocel);
+    
+    let event_presets = get_event_presets(&ocel);
+    
+    //get enabled model activities
+    //let enabled_model_activities = enabled_model_act::get_ebabled_model_activities_for_event(&"e1".to_string(), event_presets.get(&"e1".to_string()).unwrap(), &bindings, &ocpn);
+    
+    //println!("Enabled Model Activities: {:?}", enabled_model_activities);
+}
+
+pub fn test_ocpn() {
+    let ocpn = get_test_ocpn_small();
+    //visualize graph (export)
+    ocpn.export_dot_to_file("src/test/vis.dot".to_string());
+    
+    let mut marking = Marking::new();
+    marking.insert("pl2".to_string(), vec!["b1".to_string(), "b2".to_string()].iter().cloned().collect());
+    marking.insert("pl1".to_string(), vec!["p1".to_string()].iter().cloned().collect());
+    
+    let mut binding_sequence: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    binding_sequence.insert("Check-in".to_string(), vec![vec!["b1".to_string()], vec!["b2".to_string()]]);
+    
+    
+
+    assert_eq!(ocpn.remove_next_binding(&mut binding_sequence, &marking),
+               Some(("Check-in".to_string(), vec!["b2".to_string()])));
+    assert_eq!(ocpn.get_enabled_transitions_from_marking(&marking), 
+               vec!["Check-in".to_string(), "Fuel plane".to_string()]);    
+}
+
+
+
+
 
 pub fn test_binding_sequence() {
     let ocel = get_test_ocel_small();
@@ -105,7 +149,7 @@ pub fn test_context_and_bindings() {
 }
 
 
-fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
+pub fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
     
     println!("Presets:");
     
@@ -124,13 +168,92 @@ fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
 
 
 
-fn get_test_ocel_sql() -> pm::OCEL{
+pub fn get_test_ocel_sql() -> pm::OCEL{
     pm::import_ocel_sqlite_from_path("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/logistics.sqlite")
         .expect("Error importing OCEL from SQLite database")
 }
 
 
-fn get_test_ocel_small() -> pm::OCEL {
+
+
+// Create a small test OCEL for demonstration purposes
+
+pub fn get_test_ocpn_small() -> OCPN {
+    let mut objects_to_types: HashMap<String, String> = HashMap::new();
+    
+    
+    objects_to_types.extend(vec![
+        ("p1".to_string(), "plane".to_string()),
+        ("p2".to_string(), "plane".to_string()),
+        ("b1".to_string(), "baggage".to_string()),
+        ("b2".to_string(), "baggage".to_string()),
+        ("b3".to_string(), "baggage".to_string()),
+        ("b4".to_string(), "baggage".to_string()),
+    ]);
+
+    let mut ocpn = OCPN {
+        places: Default::default(),
+        transitions: Default::default(),
+        silent_transtions: Default::default(),
+        arcs: vec![],
+        initial_marking: None,
+        final_marking: None,
+        object_to_type: objects_to_types,
+    };
+    ocpn.add_place("pl1".to_string(), "plane".to_string());
+    ocpn.add_place("pl2".to_string(), "baggage".to_string());
+    ocpn.add_place("pl3".to_string(), "plane".to_string());
+    ocpn.add_place("pl4".to_string(), "baggage".to_string());
+    ocpn.add_place("pl5".to_string(), "plane".to_string());
+    ocpn.add_place("pl6".to_string(), "baggage".to_string());
+    ocpn.add_place("pl7".to_string(), "plane".to_string());
+    ocpn.add_place("pl8".to_string(), "baggage".to_string());
+    ocpn.add_place("pl9".to_string(), "plane".to_string());
+    ocpn.add_place("pl10".to_string(), "plane".to_string());
+    ocpn.add_place("pl11".to_string(), "baggage".to_string());
+
+    ocpn.add_silent_transition("tau".to_string());
+
+
+    ocpn.add_arc("pl1".to_string(), "Fuel plane".to_string(), "plane".to_string());
+    ocpn.add_arc("pl2".to_string(), "Check-in".to_string(), "baggage".to_string());
+    ocpn.add_arc("Fuel plane".to_string(), "pl3".to_string(), "plane".to_string());
+    ocpn.add_arc("Check-in".to_string(), "pl4".to_string(), "baggage".to_string());
+    ocpn.add_arc("pl3".to_string(), "Load cargo".to_string(), "plane".to_string());
+    ocpn.add_arc("pl4".to_string(), "Load cargo".to_string(), "baggage".to_string());
+    ocpn.add_arc("pl4".to_string(), "Load cargo".to_string(), "baggage".to_string());
+    ocpn.add_arc("Load cargo".to_string(), "pl5".to_string(), "plane".to_string());
+    ocpn.add_arc("Load cargo".to_string(), "pl6".to_string(), "baggage".to_string());
+    ocpn.add_arc("Load cargo".to_string(), "pl6".to_string(), "baggage".to_string());
+    ocpn.add_arc("pl5".to_string(), "Lift off".to_string(), "plane".to_string());
+    ocpn.add_arc("pl6".to_string(), "Unload".to_string(), "baggage".to_string());
+    ocpn.add_arc("pl6".to_string(), "Unload".to_string(), "baggage".to_string());
+    ocpn.add_arc("pl6".to_string(), "tau".to_string(), "baggage".to_string());
+    ocpn.add_arc("tau".to_string(), "pl8".to_string(), "baggage".to_string());
+    ocpn.add_arc("Lift off".to_string(), "pl7".to_string(), "plane".to_string());
+    ocpn.add_arc("pl7".to_string(), "Unload".to_string(), "plane".to_string());
+    ocpn.add_arc("Unload".to_string(), "pl8".to_string(), "baggage".to_string());
+    ocpn.add_arc("Unload".to_string(), "pl8".to_string(), "baggage".to_string());
+    ocpn.add_arc("Unload".to_string(), "pl9".to_string(), "plane".to_string());
+    ocpn.add_arc("pl8".to_string(), "Pick up @ dest".to_string(), "baggage".to_string());
+    ocpn.add_arc("pl9".to_string(), "Clean".to_string(), "plane".to_string());
+    ocpn.add_arc("Clean".to_string(), "pl10".to_string(), "plane".to_string());
+    ocpn.add_arc("Pick up @ dest".to_string(), "pl11".to_string(), "baggage".to_string());
+
+
+    let marking: Marking = HashMap::from([
+        ("pl1".to_string(), HashSet::from(["p1".to_string()])),
+        ("pl2".to_string(), HashSet::from(["b1".to_string(), "b2".to_string()])),
+    ]);
+    
+    
+    ocpn.initial_marking = Some(marking);
+    
+    ocpn
+}
+
+
+pub fn get_test_ocel_small() -> pm::OCEL {
     //create test ocel
 
     let empty_attribute = OCELTypeAttribute {

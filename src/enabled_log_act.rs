@@ -69,7 +69,7 @@ pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
     eog
 }
 
-//TODO: not fully tested
+//TODO: not fully tested + return event ID?
 pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
     //order important?
     println!("constructing presets ...");
@@ -237,9 +237,9 @@ fn hash_context(context: &HashMap<String, Counter<Vec<String>>>) -> u64 {
         // extract counter keys
         if let Some(counter) = context.get(key) {
             // collect keys from the counter
-            let mut vec_keys: Vec<_> = counter.iter().map(|(k, _count)| k).collect();
+            let mut vec_keys: Vec<String> = counter.iter().flat_map(|(k, _count)| k.clone()).collect::<Vec<String>>();
             // sort keys to ensure consistent hashing
-            vec_keys.sort();
+            vec_keys.sort(); //TODO maybe whole different approach needed
             vec_keys.hash(&mut hasher);
         }
     }
@@ -260,19 +260,24 @@ fn get_activities(event_id: String, ocel: &pm::OCEL) -> Vec<String> {
 //TODO: empty contexts problem 
 
 //                                              context: HashMap [event_id, HashMap [object_type, Counter(activity/EventType)]]
-pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, HashMap<String, Counter<Vec<String>>>>) -> HashMap<String, Vec<String>> {
+pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, HashMap<String, Counter<Vec<String>>>>) 
+    -> (HashMap<String, HashSet<String>>, HashMap<u64, (HashSet<String>, HashSet<String>)>) {///return: <event_id, Vec<activities>> , seen context (in raw format => formatting costs time)
+    
     println!("getting enabled log activities ...");
     
     //assumption: each event is exaclty in one enables log activity entry !!!!
     
 
     //all duplicate contexts: Hashmap: hashed(context), (event_ids, activities)
-    let mut seen_contexts: HashMap<u64, (Vec<String>, Vec<String>)> = HashMap::new();
+    let mut seen_contexts: HashMap<u64, (HashSet<String>, HashSet<String>)> = HashMap::new();
 
 
     //enabled log activities: // HashMap [event_id, Vec<activity/EventType>]
-    let mut enabled_log_activities: HashMap<String, Vec<String>> = HashMap::new();
+    let mut enabled_log_activities: HashMap<String, HashSet<String>> = HashMap::new();
 
+    //TODO can be done better???? must
+    
+    
     //for each event, get context and check if it is already seen
     for (event_id, context) in contexts{
 
@@ -281,17 +286,18 @@ pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, Ha
         let seen_context = seen_contexts
             .entry(hashed_context)
             .or_default();
-        seen_context.0.push(event_id.clone());
+        seen_context.0.insert(event_id.clone());
         //add activities to seen_contexts
         let activities = get_activities(event_id.clone(), ocel);
         seen_context.1.extend(activities.clone());
-        //delete duplicates
-        seen_context.1.sort();
-        seen_context.1.dedup();
+        //delete duplicates => since HashSet => no duplicates 
     }
+    
+    
+    
 
     //get enabled log activities for each event_id
-    for (_, (event_ids, activities)) in seen_contexts {
+    for (_, (event_ids, activities)) in seen_contexts.clone() {
 
         for event_id in event_ids {
 
@@ -301,6 +307,6 @@ pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, Ha
                 .or_default() = activities.clone();
         }
     }
-    enabled_log_activities
+    (enabled_log_activities, seen_contexts)
 }
 
