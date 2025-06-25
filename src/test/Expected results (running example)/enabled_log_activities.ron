@@ -1,0 +1,68 @@
+{
+    "e5": [
+        "Lift off",
+    ],
+    "e4": [
+        "Load cargo",
+    ],
+    "e1": [
+        "Fuel plane",
+        "Check-in",
+    ],
+    "e6": [
+        "Unload",
+    ],
+    "e15": [
+        "Unload",
+    ],
+    "e13": [
+        "Load cargo",
+    ],
+    "e14": [
+        "Lift off",
+    ],
+    "e7": [
+        "Clean",
+        "Pick up @ dest",
+    ],
+    "e18": [
+        "Clean",
+        "Pick up @ dest",
+    ],
+    "e17": [
+        "Clean",
+        "Pick up @ dest",
+    ],
+    "e2": [
+        "Fuel plane",
+        "Check-in",
+    ],
+    "e16": [
+        "Clean",
+        "Pick up @ dest",
+    ],
+    "e3": [
+        "Fuel plane",
+        "Check-in",
+    ],
+    "e11": [
+        "Fuel plane",
+        "Check-in",
+    ],
+    "e9": [
+        "Clean",
+        "Pick up @ dest",
+    ],
+    "e8": [
+        "Clean",
+        "Pick up @ dest",
+    ],
+    "e12": [
+        "Fuel plane",
+        "Check-in",
+    ],
+    "e10": [
+        "Fuel plane",
+        "Check-in",
+    ],
+}

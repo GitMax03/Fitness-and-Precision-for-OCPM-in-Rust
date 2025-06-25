@@ -1,0 +1,122 @@
+{
+    ("e14", "Lift off"): {
+        "baggage": [],
+        "plane": [
+            "p2",
+        ],
+    },
+    ("e2", "Check-in"): {
+        "baggage": [
+            "b1",
+        ],
+        "plane": [],
+    },
+    ("e6", "Unload"): {
+        "plane": [
+            "p1",
+        ],
+        "baggage": [
+            "b1",
+            "b2",
+        ],
+    },
+    ("e9", "Clean"): {
+        "baggage": [],
+        "plane": [
+            "p1",
+        ],
+    },
+    ("e15", "Unload"): {
+        "baggage": [
+            "b3",
+            "b4",
+        ],
+        "plane": [
+            "p2",
+        ],
+    },
+    ("e10", "Fuel plane"): {
+        "plane": [
+            "p2",
+        ],
+        "baggage": [],
+    },
+    ("e17", "Pick up @ dest"): {
+        "plane": [],
+        "baggage": [
+            "b3",
+        ],
+    },
+    ("e16", "Clean"): {
+        "baggage": [],
+        "plane": [
+            "p2",
+        ],
+    },
+    ("e8", "Pick up @ dest"): {
+        "baggage": [
+            "b2",
+        ],
+        "plane": [],
+    },
+    ("e7", "Pick up @ dest"): {
+        "baggage": [
+            "b1",
+        ],
+        "plane": [],
+    },
+    ("e5", "Lift off"): {
+        "plane": [
+            "p1",
+        ],
+        "baggage": [],
+    },
+    ("e13", "Load cargo"): {
+        "plane": [
+            "p2",
+        ],
+        "baggage": [
+            "b3",
+            "b4",
+        ],
+    },
+    ("e3", "Check-in"): {
+        "plane": [],
+        "baggage": [
+            "b2",
+        ],
+    },
+    ("e11", "Check-in"): {
+        "baggage": [
+            "b3",
+        ],
+        "plane": [],
+    },
+    ("e18", "Pick up @ dest"): {
+        "plane": [],
+        "baggage": [
+            "b4",
+        ],
+    },
+    ("e12", "Check-in"): {
+        "plane": [],
+        "baggage": [
+            "b4",
+        ],
+    },
+    ("e1", "Fuel plane"): {
+        "baggage": [],
+        "plane": [
+            "p1",
+        ],
+    },
+    ("e4", "Load cargo"): {
+        "plane": [
+            "p1",
+        ],
+        "baggage": [
+            "b1",
+            "b2",
+        ],
+    },
+}

@@ -4,8 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-process_mining = { git = "https://github.com/aarkue/rust4pm.git", branch = "main" }
+process_mining = { git = "https://github.com/aarkue/rust4pm.git", branch = "main", features = ["ocel-sqlite"] }
 chrono = "0.4.41"
 
 rustworkx-core = "0.16"
-counter = "0.6.0"
+counter = { version = "0.6.0", features = ["serde"] }
+uuid = { version = "1.16.0", features = ["v4"] }
+bimap = "0.6"
+petgraph = "0.7.1"
+serde_json = "1.0.140"
+serde = { version = "1.0", features = ["derive"] }
+ron = "0.8"
