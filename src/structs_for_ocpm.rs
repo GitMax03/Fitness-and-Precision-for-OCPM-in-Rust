@@ -13,6 +13,7 @@ use petgraph::graph::DiGraph;
 use petgraph::visit::NodeRef;
 
 //OCPN
+#[derive(Clone)]
 pub struct OCPN {
 
     pub places: HashMap<String, Place>, // <place id, Place> TODO: maybe add object types?
@@ -26,138 +27,202 @@ pub struct OCPN {
     pub final_marking: Option<Vec<Marking>>,
 
     pub object_to_type: HashMap<String, String>, //object id, object type
+    pub activity_to_transitions: HashMap<String, Vec<String>>, //map from activity to all tranisitions with that activity for faster access
 
 }
+
 
 impl OCPN {
 
     //------------------ CONSTRUCTORS -------------------------------
 
     //add arc to the OCPN: source: place id, target: transition id, object_type: object type
-    pub fn add_arc_to_transition(&mut self, source: String, target: String, object_type: String) {
+    ///if successful return (source_id, target_id)
+    pub fn add_arc_to_transition(&mut self, source_id: Option<String>, target_id: Option<String>, object_type: String, activity: Option<String>) -> Result<(String, String), String> {
 
-        //add input place to the transition
-        if let Some(transition) = self.transitions.get_mut(&target) {
-            //if target transition exists, add the input place
-            transition.input_places.push((source.clone(), object_type.clone()));
-        } else if let Some(silent_transition) = self.silent_transtions.get_mut(&target) {
-            //if silent transition exists, add the input place
-            silent_transition.input_places.push((source.clone(), object_type.clone()));
-        }else{
-            //if no transition exists, create a new one
-            self.transitions.insert(target.clone(), Transition {
-                input_places: vec![(source.clone(), object_type.clone())],
-                output_places: vec![],
-            });
-        }
-        //add output place to the source place
-        if let Some(place) = self.places.get_mut(&source) {
-            //if source place exists, add the output transition
-            place.output_transitions.push((target.clone(), object_type.clone()));
+        let mut t_id = "".to_string();
+
+        if target_id.is_none() || !self.transitions.contains_key(&target_id.clone().unwrap()) {
+            //target transition does not exist yet
+            if let Some(act) = activity{
+                t_id = self.add_transition(act, None, Some(false))?;
+            }else{
+                //when transition does not exists and no activity is given, no new transition can be created
+                return Err("No transition found and can't create new transition because activity is missing".to_string())
+            }
+
+        } else if self.transitions.contains_key(&target_id.clone().unwrap()) || self.silent_transtions.contains_key(&target_id.clone().unwrap()) {
+            t_id = target_id.unwrap();
         } else {
-            //if no place exists, create a new one
-            self.places.insert(source.clone(), Place {
-                input_transitions: vec![],
-                output_transitions: vec![(target.clone(), object_type.clone())],
-                object_type: object_type.clone(), //set object type of the place
-            });
+            //when transition does not exists and no activity is given, no new transition can be created
+            return Err("Error".to_string())
         }
 
 
+        //source place
+        let mut p_id = "".to_string();
+        if source_id.is_none() || !self.places.contains_key(&source_id.clone().unwrap()) {
+            //target place does not exist yet
+            p_id = self.add_place(None, object_type.clone())?;
+        }else{
+            p_id = source_id.unwrap();
+        }
+
+        self.transitions.get_mut(&t_id).unwrap().input_places.push((p_id.clone(), object_type.clone()));
+        self.places.get_mut(&p_id).unwrap().output_transitions.push((t_id.clone(), object_type.clone()));
 
         let arc = Arc {
-            source,
-            target,
+            source: p_id.clone(),
+            target: t_id.clone(),
             object_type,
         };
         self.arcs.push(arc);
+        Ok((p_id, t_id))
     }
     //add arc to the OCPN: source: transition id, target: place id, object_type: object type
-    pub fn add_arc_from_transition(&mut self, source: String, target: String, object_type: String) {
+    ///if successful return (source_id, target_id)
+    pub fn add_arc_from_transition(&mut self, source_id: Option<String>, target_id: Option<String>, object_type: String, activity: Option<String>) -> Result<(String, String), String> {
 
-        //add output place to the transition
-        if let Some(transition) = self.transitions.get_mut(&source) {
-            //if source transition exists, add the output place
-            transition.output_places.push((target.clone(), object_type.clone()));
-        } else if let Some(silent_transition) = self.silent_transtions.get_mut(&source) {
-            //if silent transition exists, add the output place
-            silent_transition.output_places.push((target.clone(), object_type.clone()));
-        }
-        else{
-            //if no transition exists, create a new one
-            self.transitions.insert(source.clone(), Transition {
-                input_places: vec![],
-                output_places: vec![(target.clone(), object_type.clone())],
-            });
-        }
-        //add input place to the target place
-        if let Some(place) = self.places.get_mut(&target) {
-            //if target place exists, add the input transition
-            place.input_transitions.push((source.clone(), object_type.clone()));
+        let mut t_id = "".to_string();
+
+        if source_id.is_none() || !self.transitions.contains_key(&source_id.clone().unwrap()) {
+            //source transition does not exist yet
+            if let Some(act) = activity{
+                t_id = self.add_transition(act, None, Some(false))?;
+            }else{
+                //when transition does not exists and no activity is given, no new transition can be created
+                return Err("No transition found and can't create new transition because activity is missing".to_string())
+            }
+
+        } else if self.transitions.contains_key(&source_id.clone().unwrap()) || self.silent_transtions.contains_key(&source_id.clone().unwrap()) {
+            t_id = source_id.unwrap();
         } else {
-            //if no place exists, create a new one
-            self.places.insert(target.clone(), Place {
-                input_transitions: vec![(source.clone(), object_type.clone())],
-                output_transitions: vec![],
-                object_type: object_type.clone(), //set object type of the place
-            });
+            //when transition does not exists and no activity is given, no new transition can be created
+            return Err("Error".to_string())
         }
 
+
+        //target place
+        let mut p_id = "".to_string();
+        if target_id.is_none() || !self.places.contains_key(&target_id.clone().unwrap()) {
+            //target place does not exist yet
+            p_id = self.add_place(None, object_type.clone())?;
+        }else{
+            p_id = target_id.unwrap();
+        }
+
+        self.transitions.get_mut(&t_id).unwrap().output_places.push((p_id.clone(), object_type.clone()));
+        self.places.get_mut(&p_id).unwrap().input_transitions.push((t_id.clone(), object_type.clone()));
 
         let arc = Arc {
-            source,
-            target,
+            source: t_id.clone(),
+            target: p_id.clone(),
             object_type,
         };
         self.arcs.push(arc);
+        Ok((t_id, p_id))
     }
-    pub fn add_arc(&mut self, source: String, target: String, object_type: String) {
+    ///if successful return (source_id, target_id)
+    pub fn add_arc(&mut self, source_id: Option<String>, target_id: Option<String>, object_type: String, activity:Option<String>) -> Result<(String, String), String> {
 
-        
+        if !source_id.is_none() && self.places.contains_key(&source_id.clone().unwrap()) &&
+            (target_id.is_none() || !self.places.contains_key(&target_id.clone().unwrap())) {
+            //source is place and target is not a place
+            Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+        }
+        else if !target_id.is_none() &&
+            (self.transitions.contains_key(&target_id.clone().unwrap()) || self.silent_transtions.contains_key(&target_id.clone().unwrap())) {
+            //target must be transition and source_id is not defined
+            Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+        }
+        else {
+            Err("Error, source and target id can't both be none!".to_string())
+        }
+
+        /*
         //check if source is a place or a transition
-        if self.places.contains_key(&source) && !self.places.contains_key(&target) {
+        if self.places.contains_key(&source_id) && !self.places.contains_key(&target_id) {
 
             //target is either a transition, silent transition or not defined
-            self.add_arc_to_transition(source, target, object_type);
+            self.add_arc_to_transition(source_id, target_id, object_type, activity);
 
-        } else if (self.transitions.contains_key(&source) || self.silent_transtions.contains_key(&source)) &&
-            (!self.transitions.contains_key(&target) || !self.silent_transtions.contains_key(&target)) {
+        } else if (self.transitions.contains_key(&source_id) || self.silent_transtions.contains_key(&source_id)) &&
+            (!self.transitions.contains_key(&target_id) || !self.silent_transtions.contains_key(&target_id)) {
             
             //source is either a transition, silent transition or not defined
             self.add_arc_from_transition(source, target, object_type);
         } else {
             panic!("Source and target can't be both places or both transitions. Source: {}, Target: {}. Or both places are unknown", source, target);
         }
-    }
-    pub fn add_transition(&mut self, transition_name: String, is_silent_transition: Option<bool>) {
 
+         */
+
+    }
+    pub fn add_transition(&mut self, activity_name: String, transition_id: Option<String>, is_silent_transition: Option<bool>) -> Result<String, String> {
+
+        //check if it is silent transition
+        if is_silent_transition == Some(true) {
+            self.add_silent_transition(activity_name.clone(), transition_id.clone());
+        }
+
+        //default id
+        let mut id:String = transition_id.clone().unwrap_or(
+            String::from("t".to_string() + &self.transitions.len().to_string()));
+
+        //check if id already exists
+        if self.transitions.contains_key(&id) {Err(format!("Transition \"{}\" already exists", id))? }
 
         //add a new transition to the OCPN
         let transition = Transition {
             input_places : vec![], //no input places by default
             output_places: vec![], //no output places by default
+            activity: activity_name.clone(),
         };
-        if let Some(true) = is_silent_transition {
-            self.silent_transtions.insert(transition_name, transition);
-        }else{
-            //default is not silent transition
-            self.transitions.insert(transition_name, transition);
-        }
+
+        //default is not silent transition
+        self.transitions.insert(id.clone(), transition);
+        self.activity_to_transitions.entry(activity_name.clone()).or_insert(vec![]).push(id.clone());
+
+        //add to activity to transition
+        self.activity_to_transitions.entry(activity_name.clone()).or_insert(vec![]).push(id.clone());
+        Ok(id)
     }
 
-    pub fn add_silent_transition(&mut self, transition_name: String) {
+    pub fn add_silent_transition(&mut self, activity_name: String, transition_id: Option<String>) -> Result<String, String> {
         //add a new silent transition to the OCPN
-        self.add_transition(transition_name, Some(true));
+
+        //default id
+        let mut id:String = transition_id.clone().unwrap_or(
+            String::from("st".to_string() + &self.silent_transtions.len().to_string()));
+        if self.silent_transtions.contains_key(&id) { Err(format!("Silent transition \"{}\" already exists", id))? }
+
+        //add a new transition to the OCPN
+        let transition = Transition {
+            input_places : vec![], //no input places by default
+            output_places: vec![], //no output places by default
+            activity: activity_name.clone(),
+        };
+
+        self.silent_transtions.insert(id.clone(), transition);
+        self.activity_to_transitions.entry(activity_name.clone()).or_insert(vec![]).push(id.clone());
+        Ok(id)
     }
 
-    pub fn add_place(&mut self, place_name: String, object_type: String) {
+    pub fn add_place(&mut self, place_id: Option<String>, object_type: String) -> Result<String, String> {
         //add a new place to the OCPN
+
+        let id:String = place_id.clone().unwrap_or(
+            String::from("pl".to_string() + &self.places.len().to_string()));
+        if self.places.contains_key(&id) { Err(format!("Place \"{}\" already exists", id))? }
+
+
         let place = Place {
             input_transitions: vec![], //no input transitions by default
             output_transitions: vec![], //no output transitions by default
-            object_type: object_type, //set object type of the place
+            object_type: object_type.clone(), //set object type of the place
         };
-        self.places.insert(place_name, place);
+        self.places.insert(id.clone(), place);
+        Ok(id)
     }
 
     pub fn new(object_to_type: HashMap<String, String>) -> Self {
@@ -170,8 +235,10 @@ impl OCPN {
             initial_marking: None,
             final_marking: None,
             object_to_type,
+            activity_to_transitions: HashMap::new(),
         }
     }
+
 
 
     //------------------ EXPORTS --------------------------------
@@ -186,7 +253,8 @@ impl OCPN {
             nodes.insert(place.0.clone(), graph.add_node(place.0.clone()));
         }
         for transition in self.transitions.iter() {
-            nodes.insert(transition.0.clone(), graph.add_node(transition.0.clone()));
+            nodes.insert(transition.0.clone(), graph.add_node(transition.0.clone()
+                + ":  " + &self.transitions.get(&transition.0.clone()).unwrap().activity));
         }
         for silent_transition in self.silent_transtions.iter() {
             nodes.insert(silent_transition.0.clone(), graph.add_node(silent_transition.0.clone()));
@@ -234,7 +302,7 @@ impl OCPN {
             //get the transition
             if let Some(transition) = self.transitions.get(&transition_id) {
                 //get the required inputs (if one imput is needed : // (place_id, object_type), count of objects needed
-                let required_inputs = self.get_required_input_places_and_obj_types(transition.clone());
+                let required_inputs = self.get_required_input_places_and_obj_types(&transition.clone());
 
                 let mut involved_objects: Vec<String> = vec![]; //objects that are involved in this transition
 
@@ -441,7 +509,7 @@ impl OCPN {
     //TODO: function code is based on get_enabled_transitions_with_breakcondition
     pub fn is_transition_enabled(&self, marking: &Marking, transition_id: String) -> (bool, Option<Vec<String>>) {
 
-        let required_inputs = self.get_required_input_places_and_obj_types(self.transitions.get(&transition_id).or_else(||self.silent_transtions.get(&transition_id)).unwrap().clone());
+        let required_inputs = self.get_required_input_places_and_obj_types(&self.transitions.get(&transition_id).or_else(|| self.silent_transtions.get(&transition_id)).unwrap().clone());
 
         let mut involved_objects: Vec<String> = vec![]; //objects that are involved in this transition
 
@@ -477,18 +545,20 @@ impl OCPN {
 
 }
 
-
+#[derive(Clone)]
 pub struct Place{
     pub input_transitions: Vec<(String, String)>, //transition ids, object type
     pub output_transitions: Vec<(String, String)>, //transition ids, object type
     pub object_type: String //object type of the place
 }
-
+#[derive(Clone)]
 pub struct Transition {
     pub input_places: Vec<(String, String)>, //place ids, object type
     pub output_places: Vec<(String, String)>, //place ids, object type
-}
 
+    pub activity: String, //activity
+}
+#[derive(Clone)]
 pub struct Arc {
     pub source: String, //place id/ transition id
     pub target: String, //place id/ transition id

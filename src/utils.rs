@@ -1,6 +1,69 @@
 use std::collections::{HashMap, HashSet};
+use std::time::Instant;
+use chrono::Duration;
 use counter::Counter;
+use crate::NUMBER_OF_ITERATIONS;
 
+pub fn evaluate_runtime(starting_times:&Vec<Instant>, steps_as_strings:&Vec<String>){
+    
+    let endtime = std::time::Instant::now();
+    
+    println!("\n\n###############################################################");
+    println!("evaluating runtime ...");
+    println!("###############################################################\n\n");
+    
+    if starting_times.len() != steps_as_strings.len() + 1 {
+        println!("Steps length mismatch.");
+        
+        println!("Starting times:{:?}", starting_times);
+        println!("Steps:{:?}", steps_as_strings);
+        return;
+    }
+    
+    let mut task_time_map:Vec<(String,f64)> = Vec::new();
+
+    for index in (1..starting_times.len()) {
+        
+        //calc elapes time for this step
+        let elapsed_time = (starting_times[index] - starting_times[index - 1]) / NUMBER_OF_ITERATIONS.into();
+        
+        task_time_map.push((steps_as_strings[index - 1].to_string(), elapsed_time.as_secs_f64()));
+        
+        println!("{:<50} took {} seconds", steps_as_strings[index - 1], elapsed_time.as_secs_f64());
+    }
+    
+    println!("----------------------------------------------------------------------------------------");
+
+
+    
+    task_time_map.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    for (name, time) in &task_time_map {
+        println!("{:<50} : {} seconds", name, time);
+    }
+
+    println!("----------------------------------------------------------------------------------------");
+    let total_time = endtime - starting_times.first().unwrap().clone();
+    
+    println!("Total time: {} Seconds With {} iterations", total_time.as_secs_f64(), NUMBER_OF_ITERATIONS);
+    println!("Average time: {} Seconds", (total_time.as_secs_f64() / NUMBER_OF_ITERATIONS as f64));
+    println!("----------------------------------------------------------------------------------------");
+    
+    let mut percentages: Vec<(String,f32)> = Vec::new();
+    let sum = task_time_map.iter().map(|(a,b)|b).sum::<f64>();
+    for (task, time) in task_time_map{
+        percentages.push((task, (time / sum * 100.09) as f32));
+    }
+    percentages.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    for (name, percentage) in &percentages {
+        println!("{:<50} : {} %", name, percentage);
+    }
+    
+    println!("\n\n #####################################################################################\n\n\n")
+    
+}
+
+
+//TODO provably already exists
 pub fn has_intersection(a: &[String], b: &[String]) -> bool {
     // no _is_disjoint func for vec?
     let set_a: HashSet<_> = a.iter().collect();  

@@ -1,4 +1,5 @@
 
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::fs::File;
@@ -10,7 +11,8 @@ use process_mining::OCEL;
 use process_mining::ocel::ocel_struct::OCELEvent;
 use ron::ser::PrettyConfig;
 use serde::{Serialize, Deserialize};
-use crate::test::test_enabled_model_act;
+use crate::structs_for_ocpm::OCPN;
+use crate::test::{test_enabled_model_act, test_ocpn};
 use crate::utils::{is_superset, print_contexts};
 
 mod enabled_log_act;
@@ -20,13 +22,28 @@ mod test;
 mod utils;
 mod enabled_model_act;
 
-fn main() {
+const NUMBER_OF_ITERATIONS: u32 = 1_000;
+/*
+100.000 results (no low energy mode):
+0.00087 55%
+0.00040 25.7%
+0.00020 13.0%
+0.000073 4.6%
+0.000020 1.2%
+0.00000067 0.04%
+average: 0.001576
+ */
 
-    test_running_example();
+fn main() {
+    
+    
+    //test_running_example();
+
+    test::test_ocpn()
     
     /*
     test::test_enabled_model_act();
-    test::test_ocpn()
+    
     test::test_enabled_log_activities();
     test::test_context_and_bindings();
     test::test_event_presets();
@@ -43,9 +60,7 @@ fn test_running_example(){
     let ocel = test::get_test_ocel();
     let ocpn = test::get_test_ocpn_small();
 
-
-    //test e5
-
+    
 
     //test
     println!("test enabled model activities for event e5");
@@ -55,7 +70,7 @@ fn test_running_example(){
         //["Lift off".to_string(), "Pick up @ dest".to_string()].iter().cloned().collect::<HashSet<String>>());
 
     let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel);
-    print_contexts(&contexts);
+    //print_contexts(&contexts);
     let presets = enabled_log_act::get_event_presets(&ocel);
     let (enabled_log_activities, contexts_map) = enabled_log_act::get_enabled_log_activities(&ocel, &contexts);
     let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &presets, &bindings, &contexts_map);
@@ -67,10 +82,10 @@ fn test_running_example(){
     test_presets(&presets);
     test_context_map(&contexts_map);
 
-    test_enabled_log_activities(&enabled_log_activities);
-    test_enabled_model_activities(&enabled_model_activities);
+    test_enabled_log_activities(&enabled_log_activities, ocpn.clone());
+    test_enabled_model_activities(&enabled_model_activities, ocpn.clone());
 
-    let (fitness, precision) = evaluator::apply(ocel, ocpn);
+    let (fitness, precision) = evaluator::apply(ocel, ocpn.clone());
 
     println!("fitness: {}", fitness);
     println!("precision: {}", precision);
@@ -143,13 +158,13 @@ fn test_context_map(context_map: &HashMap<u64, (HashSet<String>, HashSet<String>
 
     println!("   -> context_map is correct!\n\n\n");
 }
-fn test_enabled_log_activities(enabled_activities: &HashMap<String, HashSet<String>>) {
-    test_enabled_activities(enabled_activities, true);
+fn test_enabled_log_activities(enabled_activities: &HashMap<String, HashSet<String>>, ocpn: OCPN) {
+    test_enabled_activities(enabled_activities, true, ocpn);
 }
-fn test_enabled_model_activities(enabled_activities: &HashMap<String, HashSet<String>>) {
-   test_enabled_activities(enabled_activities, false);
+fn test_enabled_model_activities(enabled_activities: &HashMap<String, HashSet<String>>, ocpn: OCPN) {
+   test_enabled_activities(enabled_activities, false, ocpn);
 }
-fn test_enabled_activities(enabled_activities: &HashMap<String, HashSet<String>>, log: bool) {
+fn test_enabled_activities(enabled_activities: &HashMap<String, HashSet<String>>, log: bool, ocpn: OCPN) {
     println!("#################### test enabled_activities ####################");
 
     let expected: HashMap<String, HashSet<String>> =
@@ -172,7 +187,6 @@ fn test_enabled_activities(enabled_activities: &HashMap<String, HashSet<String>>
         );
 
         let expected_set = &expected[key];
-
         assert_eq!(
             actual_set, expected_set,
             "Sets for key '{}' differ (expected: {:?}, actual: {:?})",

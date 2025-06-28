@@ -43,7 +43,7 @@ pub fn get_enabled_model_activities(
 
     let mut result: HashMap<String, HashSet<String>> = HashMap::new();
     
-    println!("Contexts map: {:?}", contexts_map);
+    //println!("Contexts map: {:?}", contexts_map);
 
     //iterate over each different context
     for (events,_) in contexts_map.values() {

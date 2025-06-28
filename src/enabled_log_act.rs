@@ -24,6 +24,7 @@ use crate::utils::*;
  */
 //TODO: not fully tested
 pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
+    #[cfg(feature = "progress")]
     println!("constructing Event Object Graph (EOG) ...");
     
     //TODO: order of Events?
@@ -41,6 +42,7 @@ pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
     //add all edges
     for i in 0..ocel.events.len() {
         //print %
+        #[cfg(feature = "progress-percentage")]
         println!("EOG: {}%", (i as f32 / ocel.events.len() as f32 * 100.0));
 
         //TODO: make more efficient
@@ -71,7 +73,8 @@ pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
 
 //TODO: not fully tested + return event ID?
 pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
-    //order important?
+    //TODO: order important?
+    #[cfg(feature = "progress")]
     println!("constructing presets ...");
 
     //get preset => all events that are connected to event_id in the eog
@@ -99,6 +102,7 @@ pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
     //get presets
     for node in eog.node_indices() {
         //print %
+        #[cfg(feature = "progress-percentage")]
         println!("Presets: {}%", (presets.len() as f32 / eog.node_count() as f32 * 100.0));
 
 
@@ -121,6 +125,7 @@ pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
 //TODO: not fully tested
 pub fn get_contexts_and_bindings (ocel: &pm::OCEL) -> (HashMap<String, HashMap<String, Counter<Vec<String>>>>,
                                                        HashMap<(String,String), HashMap<String, Vec<String>>>) {
+    #[cfg(feature = "progress")]
     println!("constructing contexts and bindings...");
 
     //TODO: check if OCELType is object type
@@ -149,6 +154,7 @@ pub fn get_contexts_and_bindings (ocel: &pm::OCEL) -> (HashMap<String, HashMap<S
     //preset.keys(): event_id
     for event in ocel.events.clone() {
         //print %
+        #[cfg(feature = "progress-percentage")]
         println!("Contexts and Bindings: {}%", (contexts.len() as f32 / ocel.events.len() as f32 * 100.0));
         
         let mut context: HashMap<String, Counter<Vec<String>>> = HashMap::new();
@@ -262,7 +268,7 @@ fn get_activities(event_id: String, ocel: &pm::OCEL) -> Vec<String> {
 //                                              context: HashMap [event_id, HashMap [object_type, Counter(activity/EventType)]]
 pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, HashMap<String, Counter<Vec<String>>>>) 
     -> (HashMap<String, HashSet<String>>, HashMap<u64, (HashSet<String>, HashSet<String>)>) {///return: <event_id, Vec<activities>> , seen context (in raw format => formatting costs time)
-    
+    #[cfg(feature = "progress")]
     println!("getting enabled log activities ...");
     
     //assumption: each event is exaclty in one enables log activity entry !!!!
