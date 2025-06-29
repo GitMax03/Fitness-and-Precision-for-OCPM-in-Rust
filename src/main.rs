@@ -187,7 +187,7 @@ fn test_enabled_activities(enabled_activities: &HashMap<String, HashSet<String>>
     for (key, actual_set) in enabled_activities {
         assert!(
             expected.contains_key(key),
-            "Key '{}' not found in expected enabled_activities",
+            "Key '{}' not found in expected enabled_activities.",
             key
         );
 
