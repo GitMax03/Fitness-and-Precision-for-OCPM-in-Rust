@@ -25,12 +25,12 @@ mod enabled_model_act;
 const NUMBER_OF_ITERATIONS: u32 = 1_000;
 /*
 100.000 results (no low energy mode):
-0.00087 55%
-0.00040 25.7%
-0.00020 13.0%
-0.000073 4.6%
-0.000020 1.2%
-0.00000067 0.04%
+model 0.00087 55%
+cntxt 0.00040 25.7%
+prset 0.00020 13.0%
+log   0.000073 4.6%
+calc  0.000020 1.2%
+event 0.00000067 0.04%
 average: 0.001576
  */
 
@@ -38,7 +38,6 @@ fn main() {
 
     //test::test_ocpn();
     test_running_example();
-
     
     
     /*
@@ -185,6 +184,11 @@ fn test_enabled_activities(enabled_activities: &HashMap<String, HashSet<String>>
     );
 
     for (key, actual_set) in enabled_activities {
+        
+        
+        
+        
+        
         assert!(
             expected.contains_key(key),
             "Key '{}' not found in expected enabled_activities",

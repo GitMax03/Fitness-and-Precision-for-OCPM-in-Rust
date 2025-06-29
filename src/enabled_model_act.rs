@@ -72,7 +72,16 @@ pub fn get_enabled_model_activities(
     }
     
     
-
+    //TODO: quick fix change result from transition_id to activity
+    result = result.iter()
+        .map(|(event, enabled_trans)| {
+            (event.clone(), enabled_trans.iter()
+                .map(|transition_id| ocpn.transitions.get(transition_id)
+                    .or(ocpn.silent_transtions.get(transition_id))
+                    .unwrap().activity.clone())
+                .collect::<HashSet<String>>())
+        })
+        .collect();
 
     result
 }
@@ -113,7 +122,7 @@ pub fn get_ebabled_model_activities_for_event(
             result.extend(ocpn.get_enabled_transitions_from_marking(&current_state));
             //TODO: check function: not containing silent transition??? ??
             //TODO: efficeincy could be better maybe: already calculated enabled transitions are calculated again
-        }
+        }//TODO: deuque from binding sequence => gets faster
         if let Some(next_binding) = ocpn.remove_next_binding(&mut binding_sequence, &current_state) { // if binding is fully replayed => no next binding could be enabled
             // next binding is not empty, so we can try to replay it
             //TODO: is checked: IMPORTANT: some transitions need both obj some only one !!!!!
@@ -131,7 +140,7 @@ pub fn get_ebabled_model_activities_for_event(
 
             //execute all enabled silent transitions
             for enabled_binding in enabled_silent_bindings {
-                //execute binding
+                //execute binding TODO: seems tau is executet twice
                 let state = ocpn.execute_binding(&mut enabled_binding.clone(), &current_state);
 
                 //enqueue resulting state

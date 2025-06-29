@@ -54,9 +54,9 @@ pub fn test_ocpn() {
     
 
     assert_eq!(ocpn.remove_next_binding(&mut binding_sequence, &marking),
-               Some(("Check-in".to_string(), vec!["b2".to_string()])));
+               Some(("Check-in1".to_string(), vec!["b2".to_string()])));
     assert_eq!(ocpn.get_enabled_transitions_from_marking(&marking), 
-               vec!["Check-in".to_string(), "Fuel plane".to_string()]);    
+               vec!["Check-in1".to_string(), "Fuel plane1".to_string()]);    
 }
 
 
@@ -208,30 +208,30 @@ pub fn get_test_ocpn_small() -> OCPN {
     ocpn.add_silent_transition("tau".to_string(), Some("tau".to_string()));
 
 
-    ocpn.add_arc(Some("pl1".to_string()),           Some("Fuel plane".to_string()),     "plane".to_string(),    Some("Fuel plane".to_string()));
-    ocpn.add_arc(Some("pl2".to_string()),           Some("Check-in".to_string()),       "baggage".to_string(),  Some("Check-in".to_string()));
-    ocpn.add_arc(Some("Fuel plane".to_string()),    Some("pl3".to_string()),            "plane".to_string(),    Some("Fuel plane".to_string()));
-    ocpn.add_arc(Some("Check-in".to_string()),      Some("pl4".to_string()),            "baggage".to_string(),  Some("Check-in".to_string()));
-    ocpn.add_arc(Some("pl3".to_string()),           Some("Load cargo".to_string()),     "plane".to_string(),    Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("pl4".to_string()),           Some("Load cargo".to_string()),     "baggage".to_string(),  Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("pl4".to_string()),           Some("Load cargo".to_string()),     "baggage".to_string(),  Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl5".to_string()),            "plane".to_string(),    Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl6".to_string()),            "baggage".to_string(),  Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl6".to_string()),            "baggage".to_string(),  Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("pl6".to_string()),           Some("Unload".to_string()),         "baggage".to_string(),  Some("Unload".to_string()));
-    ocpn.add_arc(Some("pl6".to_string()),           Some("Unload".to_string()),         "baggage".to_string(),  Some("Unload".to_string()));
-    ocpn.add_arc(Some("pl5".to_string()),           Some("Lift off".to_string()),       "plane".to_string(),    Some("Lift off".to_string()));
+    ocpn.add_arc(Some("pl1".to_string()),           Some("Fuel plane1".to_string()),     "plane".to_string(),    Some("Fuel plane".to_string()));
+    ocpn.add_arc(Some("pl2".to_string()),           Some("Check-in1".to_string()),       "baggage".to_string(),  Some("Check-in".to_string()));
+    ocpn.add_arc(Some("Fuel plane1".to_string()),    Some("pl3".to_string()),            "plane".to_string(),    Some("Fuel plane".to_string()));
+    ocpn.add_arc(Some("Check-in1".to_string()),      Some("pl4".to_string()),            "baggage".to_string(),  Some("Check-in".to_string()));
+    ocpn.add_arc(Some("pl3".to_string()),           Some("Load cargo1".to_string()),     "plane".to_string(),    Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("pl4".to_string()),           Some("Load cargo1".to_string()),     "baggage".to_string(),  Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("pl4".to_string()),           Some("Load cargo1".to_string()),     "baggage".to_string(),  Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("Load cargo1".to_string()),    Some("pl5".to_string()),            "plane".to_string(),    Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("Load cargo1".to_string()),    Some("pl6".to_string()),            "baggage".to_string(),  Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("Load cargo1".to_string()),    Some("pl6".to_string()),            "baggage".to_string(),  Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("pl6".to_string()),           Some("Unload1".to_string()),         "baggage".to_string(),  Some("Unload".to_string()));
+    ocpn.add_arc(Some("pl6".to_string()),           Some("Unload1".to_string()),         "baggage".to_string(),  Some("Unload".to_string()));
+    ocpn.add_arc(Some("pl5".to_string()),           Some("Lift off1".to_string()),       "plane".to_string(),    Some("Lift off".to_string()));
     ocpn.add_arc(Some("pl6".to_string()),           Some("tau".to_string()),            "baggage".to_string(),  Some("tau".to_string()));
     ocpn.add_arc(Some("tau".to_string()),           Some("pl8".to_string()),            "baggage".to_string(),  Some("tau".to_string()));
-    ocpn.add_arc(Some("Lift off".to_string()),      Some("pl7".to_string()),            "plane".to_string(),    Some("Lift off".to_string()));
-    ocpn.add_arc(Some("pl7".to_string()),           Some("Unload".to_string()),         "plane".to_string(),    Some("Unload".to_string()));
-    ocpn.add_arc(Some("Unload".to_string()),        Some("pl8".to_string()),            "baggage".to_string(),  Some("Unload".to_string()));
-    ocpn.add_arc(Some("Unload".to_string()),        Some("pl8".to_string()),            "baggage".to_string(),  Some("Unload".to_string()));
-    ocpn.add_arc(Some("Unload".to_string()),        Some("pl9".to_string()),            "plane".to_string(),    Some("Unload".to_string()));
-    ocpn.add_arc(Some("pl8".to_string()),           Some("Pick up @ dest".to_string()), "baggage".to_string(),  Some("Pick up @ dest".to_string()));
-    ocpn.add_arc(Some("pl9".to_string()),           Some("Clean".to_string()),          "plane".to_string(),    Some("Clean".to_string()));
-    ocpn.add_arc(Some("Clean".to_string()),         Some("pl10".to_string()),           "plane".to_string(),    Some("Clean".to_string()));
-    ocpn.add_arc(Some("Pick up @ dest".to_string()),Some("pl11".to_string()),           "baggage".to_string(),  Some("Pick up @ dest".to_string()));
+    ocpn.add_arc(Some("Lift off1".to_string()),      Some("pl7".to_string()),            "plane".to_string(),    Some("Lift off".to_string()));
+    ocpn.add_arc(Some("pl7".to_string()),           Some("Unload1".to_string()),         "plane".to_string(),    Some("Unload".to_string()));
+    ocpn.add_arc(Some("Unload1".to_string()),        Some("pl8".to_string()),            "baggage".to_string(),  Some("Unload".to_string()));
+    ocpn.add_arc(Some("Unload1".to_string()),        Some("pl8".to_string()),            "baggage".to_string(),  Some("Unload".to_string()));
+    ocpn.add_arc(Some("Unload1".to_string()),        Some("pl9".to_string()),            "plane".to_string(),    Some("Unload".to_string()));
+    ocpn.add_arc(Some("pl8".to_string()),           Some("Pick up @ dest1".to_string()), "baggage".to_string(),  Some("Pick up @ dest".to_string()));
+    ocpn.add_arc(Some("pl9".to_string()),           Some("Clean1".to_string()),          "plane".to_string(),    Some("Clean".to_string()));
+    ocpn.add_arc(Some("Clean1".to_string()),         Some("pl10".to_string()),           "plane".to_string(),    Some("Clean".to_string()));
+    ocpn.add_arc(Some("Pick up @ dest1".to_string()),Some("pl11".to_string()),           "baggage".to_string(),  Some("Pick up @ dest".to_string()));
 
 
     let marking: Marking = HashMap::from([

@@ -324,6 +324,10 @@ impl OCPN {
 
 
     //---------------- GETTERS --------------------------------
+    
+    pub fn get_activity(&self, transition_id: &String) -> String{
+        self.transitions.get(transition_id).or(self.silent_transtions.get(transition_id)).unwrap().activity.clone()
+    }
 
     pub fn get_enabled_transitions_with_breakcondition(&self, marking: &Marking, binding_sequence: Option<&HashMap<String, Vec<Vec<String>>>>) -> Vec<(String, Vec<String>)> { //return: transition_id, [object ids that are involved]
         //ASSUMPTION: binding inputs matches the input places of the transitions !!!! TODO
@@ -380,7 +384,7 @@ impl OCPN {
                     enabled_transitions_with_obj_ids.push((transition_id.clone(), involved_objects.clone()));
                     //if binding_sequence is provided, check if this transition is in the binding_sequence
                     if let Some(binding_seq) = binding_sequence {
-                        if binding_seq.contains_key(&transition_id) {
+                        if binding_seq.contains_key(&self.get_activity(&transition_id)) {
                             //if it is, return it immediately
                             return vec![(transition_id, involved_objects.clone())];
                         }
@@ -446,8 +450,8 @@ impl OCPN {
 
         //remove and return fist binding that fits
         for (transition_id, object_ids) in enabled_transition.iter() {
-            //get first binding that satisfies: transition_id and object_ids
-            let big_binding = binding_sequence.get_mut(transition_id).unwrap();
+            //get first binding that satisfies: transition_id and object_ids ????
+            let big_binding = binding_sequence.get_mut(&self.get_activity(transition_id)).unwrap();
 
 
             //iterate over each (real) binding in big binding
@@ -456,7 +460,7 @@ impl OCPN {
                     let result = (transition_id.clone(), big_binding.swap_remove(index));
                     //if binding is empty, remove it from the sequence
                     if big_binding.is_empty() {
-                        binding_sequence.remove(transition_id);
+                        binding_sequence.remove(&self.get_activity(transition_id));
                     }
                     return Some(result);
                 }
