@@ -68,7 +68,8 @@ impl OCPN {
             p_id = source_id.unwrap();
         }
 
-        self.transitions.get_mut(&t_id).unwrap().input_places.push((p_id.clone(), object_type.clone()));
+        self.transitions.get_mut(&t_id).or(self.silent_transtions.get_mut(&t_id))
+            .unwrap().input_places.push((p_id.clone(), object_type.clone()));
         self.places.get_mut(&p_id).unwrap().output_transitions.push((t_id.clone(), object_type.clone()));
 
         let arc = Arc {
@@ -85,7 +86,7 @@ impl OCPN {
 
         let mut t_id = "".to_string();
 
-        if source_id.is_none() || (!self.transitions.contains_key(&source_id.clone().unwrap()) && !self.silent_transtions.contains_key(&target_id.clone().unwrap())) {
+        if source_id.is_none() || (!self.transitions.contains_key(&source_id.clone().unwrap()) && !self.silent_transtions.contains_key(&source_id.clone().unwrap())) {
             //source transition does not exist yet
             if let Some(act) = activity{
                 t_id = self.add_transition(act, source_id, Some(false))?;
@@ -111,7 +112,7 @@ impl OCPN {
             p_id = target_id.unwrap();
         }
 
-        self.transitions.get_mut(&t_id).unwrap().output_places.push((p_id.clone(), object_type.clone()));
+        self.transitions.get_mut(&t_id).or(self.silent_transtions.get_mut(&t_id)).unwrap().output_places.push((p_id.clone(), object_type.clone()));
         self.places.get_mut(&p_id).unwrap().input_transitions.push((t_id.clone(), object_type.clone()));
 
         let arc = Arc {
@@ -140,40 +141,41 @@ impl OCPN {
            trans        trans -> err
          */
         
-        if source_id.is_none(){
-            if target_id.is_none(){
-                Err("Source and Target can't both be none!".to_string())
-            }
-            else if self.places.contains_key(&target_id.clone().unwrap()){
-                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
-            }
-            else{
-                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
-            }
-            
-        }
-        else if self.places.contains_key(&source_id.clone().unwrap()){
-            if target_id.is_none(){
-                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
-            }
-            else if self.places.contains_key(&target_id.clone().unwrap()){
+        let source_none = source_id.is_none();
+        let target_none = target_id.is_none();
+        
+        if !source_none && self.places.contains_key(&source_id.clone().unwrap()){
+            if !target_none && self.places.contains_key(&target_id.clone().unwrap()){
                 Err("Place to Place is not allowed!".to_string())
             }
-            else{
+            else if !target_none && self.all_transitions_contains_key(&target_id.clone().unwrap()){
+                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }else{
                 Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
             }
             
         }
-        else{//source must be transition
-            if target_id.is_none(){
+        else if !source_none && self.all_transitions_contains_key(&source_id.clone().unwrap()){
+            
+            if !target_none && self.places.contains_key(&target_id.clone().unwrap()){
                 Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
             }
-            else if self.places.contains_key(&target_id.clone().unwrap()){
-                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
-            }
-            else{
+            else if !target_none && self.all_transitions_contains_key(&target_id.clone().unwrap()){
                 Err("Transition to Transition is not allowed!".to_string().to_string())
+            }else{
+                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
             }
+        }else{ //soruce id is either none or not contained in place or transitions
+            
+            if !target_none && self.places.contains_key(&target_id.clone().unwrap()){
+                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            else if !target_none && self.all_transitions_contains_key(&target_id.clone().unwrap()){
+                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }else{
+                Err("Source and Target can't both be none!".to_string())
+            }
+
         }
 
         /*

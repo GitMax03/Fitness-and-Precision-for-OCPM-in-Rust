@@ -35,15 +35,15 @@ average: 0.001576
  */
 
 fn main() {
-    
-    
-    //test_running_example();
 
-    test::test_ocpn()
+    //test::test_ocpn();
+    test_running_example();
+
+    
     
     /*
     test::test_enabled_model_act();
-    
+   
     test::test_enabled_log_activities();
     test::test_context_and_bindings();
     test::test_event_presets();
@@ -70,10 +70,14 @@ fn test_running_example(){
         //["Lift off".to_string(), "Pick up @ dest".to_string()].iter().cloned().collect::<HashSet<String>>());
 
     let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel);
+    println!(".");
     //print_contexts(&contexts);
     let presets = enabled_log_act::get_event_presets(&ocel);
+    println!(".");
     let (enabled_log_activities, contexts_map) = enabled_log_act::get_enabled_log_activities(&ocel, &contexts);
+    println!(".");
     let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &presets, &bindings, &contexts_map);
+    println!(".");
 
     //save_to_ron(&contexts_map.clone(), "src/test/Expected results (running example)/context_map.ron").unwrap();
 
@@ -166,6 +170,7 @@ fn test_enabled_model_activities(enabled_activities: &HashMap<String, HashSet<St
 }
 fn test_enabled_activities(enabled_activities: &HashMap<String, HashSet<String>>, log: bool, ocpn: OCPN) {
     println!("#################### test enabled_activities ####################");
+    if log {println!("Log")} else {println!("Model")};
 
     let expected: HashMap<String, HashSet<String>> =
         if log {load_from_ron("src/test/Expected results (running example)/enabled_log_activities.ron").unwrap()}
