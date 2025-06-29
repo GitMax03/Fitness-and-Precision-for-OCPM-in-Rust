@@ -205,7 +205,7 @@ pub fn get_test_ocpn_small() -> OCPN {
     ocpn.add_place(Some("pl10".to_string()), "plane".to_string());
     ocpn.add_place(Some("pl11".to_string()), "baggage".to_string());
 
-    ocpn.add_silent_transition("tau".to_string(), None);
+    //ocpn.add_silent_transition("tau".to_string(), None);
 
 
     ocpn.add_arc(Some("pl1".to_string()),           Some("Fuel plane".to_string()),     "plane".to_string(),    Some("Fuel plane".to_string()));

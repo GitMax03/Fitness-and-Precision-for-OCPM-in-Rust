@@ -42,10 +42,10 @@ impl OCPN {
 
         let mut t_id = "".to_string();
 
-        if target_id.is_none() || !self.transitions.contains_key(&target_id.clone().unwrap()) {
+        if target_id.is_none() || (!self.transitions.contains_key(&target_id.clone().unwrap())&& !self.silent_transtions.contains_key(&target_id.clone().unwrap())) {
             //target transition does not exist yet
             if let Some(act) = activity{
-                t_id = self.add_transition(act, None, Some(false))?;
+                t_id = self.add_transition(act, target_id.clone(), Some(false))?;
             }else{
                 //when transition does not exists and no activity is given, no new transition can be created
                 return Err("No transition found and can't create new transition because activity is missing".to_string())
@@ -63,7 +63,7 @@ impl OCPN {
         let mut p_id = "".to_string();
         if source_id.is_none() || !self.places.contains_key(&source_id.clone().unwrap()) {
             //target place does not exist yet
-            p_id = self.add_place(None, object_type.clone())?;
+            p_id = self.add_place(source_id, object_type.clone())?;
         }else{
             p_id = source_id.unwrap();
         }
@@ -85,10 +85,10 @@ impl OCPN {
 
         let mut t_id = "".to_string();
 
-        if source_id.is_none() || !self.transitions.contains_key(&source_id.clone().unwrap()) {
+        if source_id.is_none() || (!self.transitions.contains_key(&source_id.clone().unwrap()) && !self.silent_transtions.contains_key(&target_id.clone().unwrap())) {
             //source transition does not exist yet
             if let Some(act) = activity{
-                t_id = self.add_transition(act, None, Some(false))?;
+                t_id = self.add_transition(act, source_id, Some(false))?;
             }else{
                 //when transition does not exists and no activity is given, no new transition can be created
                 return Err("No transition found and can't create new transition because activity is missing".to_string())
@@ -106,7 +106,7 @@ impl OCPN {
         let mut p_id = "".to_string();
         if target_id.is_none() || !self.places.contains_key(&target_id.clone().unwrap()) {
             //target place does not exist yet
-            p_id = self.add_place(None, object_type.clone())?;
+            p_id = self.add_place(target_id, object_type.clone())?;
         }else{
             p_id = target_id.unwrap();
         }
@@ -125,18 +125,55 @@ impl OCPN {
     ///if successful return (source_id, target_id)
     pub fn add_arc(&mut self, source_id: Option<String>, target_id: Option<String>, object_type: String, activity:Option<String>) -> Result<(String, String), String> {
 
-        if !source_id.is_none() && self.places.contains_key(&source_id.clone().unwrap()) &&
-            (target_id.is_none() || !self.places.contains_key(&target_id.clone().unwrap())) {
-            //source is place and target is not a place
-            Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+        /*
+         cases: 
+           source      target
+           
+           None         None -> err
+           None         place -> from trans
+           None         trans -> to trans
+           place        None  -> to trans
+           place        place -> err
+           place        trans -> to trans
+           trans        None  -> from trans
+           trans        place -> from trans
+           trans        trans -> err
+         */
+        
+        if source_id.is_none(){
+            if target_id.is_none(){
+                Err("Source and Target can't both be none!".to_string())
+            }
+            else if self.places.contains_key(&target_id.clone().unwrap()){
+                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            else{
+                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            
         }
-        else if !target_id.is_none() &&
-            (self.transitions.contains_key(&target_id.clone().unwrap()) || self.silent_transtions.contains_key(&target_id.clone().unwrap())) {
-            //target must be transition and source_id is not defined
-            Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+        else if self.places.contains_key(&source_id.clone().unwrap()){
+            if target_id.is_none(){
+                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            else if self.places.contains_key(&target_id.clone().unwrap()){
+                Err("Place to Place is not allowed!".to_string())
+            }
+            else{
+                Ok(self.add_arc_to_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            
         }
-        else {
-            Err("Error, source and target id can't both be none!".to_string())
+        else{//source must be transition
+            if target_id.is_none(){
+                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            else if self.places.contains_key(&target_id.clone().unwrap()){
+                Ok(self.add_arc_from_transition(source_id, target_id, object_type, activity).expect("Error with adding arc"))
+            }
+            else{
+                Err("Transition to Transition is not allowed!".to_string().to_string())
+            }
         }
 
         /*
@@ -541,7 +578,9 @@ impl OCPN {
         (true, Some(involved_objects)) //transition is enabled, return involved objects
     }
 
-
+    fn all_transitions_contains_key(&self, key: &String) -> bool {
+        self.transitions.contains_key(key) || self.silent_transtions.contains_key(key)
+    }
 
 }
 
