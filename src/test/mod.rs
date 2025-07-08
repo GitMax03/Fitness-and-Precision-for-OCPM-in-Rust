@@ -5,13 +5,14 @@ use std::io::Write;
 use std::fs::File;
 use std::io::ErrorKind::StaleNetworkFileHandle;
 use std::ops::Add;
+use std::process::id;
 use std::string::ToString;
 use bimap::BiMap;
 use pm::ocel::ocel_struct::*;
 use chrono::{FixedOffset, TimeZone};
 use petgraph::adj::NodeIndex;
 use petgraph::graph::DiGraph;
-use rustworkx_core::petgraph::dot::{Config, Dot};
+use petgraph::dot::{Dot, Config};
 
 
 use crate::{enabled_log_act, enabled_model_act};
@@ -27,17 +28,21 @@ pub fn get_test_ocel() -> pm::OCEL {
 pub fn test_enabled_model_act() {
     let ocel = get_test_ocel_small();
     let ocpn = get_test_ocpn_small();
-    
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
+        .map(|e| (e.id.clone(), e.clone()))
+        .collect();
     //get contexts and bindings
-    let (contexts, bindings) = get_contexts_and_bindings(&ocel);
+    let (contexts, bindings) = get_contexts_and_bindings(&ocel, &get_event_presets(&ocel, &id_to_event));
     
-    let event_presets = get_event_presets(&ocel);
+    let event_presets = get_event_presets(&ocel, &id_to_event);
     
     //get enabled model activities
     //let enabled_model_activities = enabled_model_act::get_ebabled_model_activities_for_event(&"e1".to_string(), event_presets.get(&"e1".to_string()).unwrap(), &bindings, &ocpn);
     
     //println!("Enabled Model Activities: {:?}", enabled_model_activities);
 }
+
+
 
 pub fn test_ocpn() {
     let ocpn = get_test_ocpn_small();
@@ -65,10 +70,13 @@ pub fn test_ocpn() {
 
 pub fn test_binding_sequence() {
     let ocel = get_test_ocel_small();
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
+        .map(|e| (e.id.clone(), e.clone()))
+        .collect();
     
     let mut binding_sequences: HashMap<String, HashMap<String, Vec<Vec<String>>>> = HashMap::new();
-    let mut presets = get_event_presets(&ocel);
-    let (contexts, bindings) = get_contexts_and_bindings(&ocel);
+    let mut presets = get_event_presets(&ocel, &id_to_event);
+    let (contexts, bindings) = get_contexts_and_bindings(&ocel, &presets);
     let mut used_objs : HashMap<String, HashSet<String>> = HashMap::new();
     for event in &ocel.events {
         let mut preset = presets.get_mut(&event.id).unwrap();
@@ -95,11 +103,17 @@ pub fn test_binding_sequence() {
 
 pub fn test_enabled_log_activities() {
     let ocel = get_test_ocel();
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
+        .map(|e| (e.id.clone(), e.clone()))
+        .collect();
     
-    let (contexts, bindings) = get_contexts_and_bindings(&ocel);
+    let (contexts, bindings) = get_contexts_and_bindings(&ocel, &get_event_presets(&ocel, &id_to_event));
     println!("Contexts: {:?}", contexts);
     //get enabled log activities
-    let ela = get_enabled_log_activities(&ocel, &contexts);
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
+        .map(|e| (e.id.clone(), e.clone()))
+        .collect();
+    let ela = get_enabled_log_activities(&contexts, &id_to_event);
     
     println!("Enabled Log Activities: {:?}", ela);
     
@@ -107,20 +121,22 @@ pub fn test_enabled_log_activities() {
 
 pub fn test_event_presets() {
     let ocel = get_test_ocel();
-    
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
+        .map(|e| (e.id.clone(), e.clone()))
+        .collect();
     //get event presets
-    let presets = get_event_presets(&ocel);
+    let presets = get_event_presets(&ocel, &id_to_event);
     
     print_presets(&presets);
 }
 pub fn test_eog() {
-    let ocel = get_test_ocel_sql();
+    let ocel = get_test_ocel();
 
     println!("start test");
 
     //println!("OCEL: {:?}", ocel);
 
-    let eog = construct_event_object_graph(&ocel);
+    let (eog,_) = construct_event_object_graph(&ocel);
     
     //visualize graph (export)
     let dot = Dot::with_config(&eog, &[Config::EdgeNoLabel]);
@@ -135,18 +151,7 @@ pub fn test_eog() {
     
 }
 
-pub fn test_context_and_bindings() {
 
-    //print_presets(&get_event_presets(&get_test_ocel()));
-    
-    let (ctxt, bind) = get_contexts_and_bindings(&get_test_ocel());
-    
-    
-    
-    println!("Contexts: {:?}", ctxt);
-    print!("--------------------\n");
-    println!("Bindings: {:?}", bind);
-}
 
 
 pub fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
@@ -193,17 +198,17 @@ pub fn get_test_ocpn_small() -> OCPN {
 
     let mut ocpn = OCPN::new(objects_to_types);
     
-    ocpn.add_place(Some("pl1".to_string()), "plane".to_string());
-    ocpn.add_place(Some("pl2".to_string()), "baggage".to_string());
-    ocpn.add_place(Some("pl3".to_string()), "plane".to_string());
-    ocpn.add_place(Some("pl4".to_string()), "baggage".to_string());
-    ocpn.add_place(Some("pl5".to_string()), "plane".to_string());
-    ocpn.add_place(Some("pl6".to_string()), "baggage".to_string());
-    ocpn.add_place(Some("pl7".to_string()), "plane".to_string());
-    ocpn.add_place(Some("pl8".to_string()), "baggage".to_string());
-    ocpn.add_place(Some("pl9".to_string()), "plane".to_string());
-    ocpn.add_place(Some("pl10".to_string()), "plane".to_string());
-    ocpn.add_place(Some("pl11".to_string()), "baggage".to_string());
+    ocpn.add_place(Some("pl1".to_string()), "plane".to_string(), true);
+    ocpn.add_place(Some("pl2".to_string()), "baggage".to_string(), true);
+    ocpn.add_place(Some("pl3".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl4".to_string()), "baggage".to_string(), false);
+    ocpn.add_place(Some("pl5".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl6".to_string()), "baggage".to_string(), false);
+    ocpn.add_place(Some("pl7".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl8".to_string()), "baggage".to_string(), false);
+    ocpn.add_place(Some("pl9".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl10".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl11".to_string()), "baggage".to_string(), false);
 
     ocpn.add_silent_transition("tau".to_string(), Some("tau".to_string()));
 

@@ -3,11 +3,12 @@ extern crate process_mining as pm;
 use std::collections::{HashMap, HashSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use process_mining::ocel::ocel_struct::{OCELEvent};
-use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::traversal::ancestors;
 use counter::Counter;
-
-
+use petgraph::graph::{DiGraph, NodeIndex};
+//use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::NodeRef;
+use process_mining::OCEL;
 use crate::utils::*;
 /*
 
@@ -23,15 +24,50 @@ use crate::utils::*;
 
  */
 //TODO: not fully tested
-pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
+pub fn construct_event_object_graph(ocel: &pm::OCEL) -> (DiGraph<String, ()>, HashMap<String, NodeIndex>) {
     #[cfg(feature = "progress")]
     println!("constructing Event Object Graph (EOG) ...");
-    
-    //TODO: order of Events?
+    let mut id_to_node: HashMap<String, NodeIndex> = HashMap::new();
+    //last event visited with object_id
+    let mut last_event_index: HashMap<String, String> = HashMap::new(); // object_id, event_id
+    let mut edges: Vec<(String, String)> = Vec::new(); //source, target
 
     let mut eog = DiGraph::<String, ()>::new();
-    let mut id_to_index: HashMap<String, NodeIndex> = HashMap::new();
+
+    for i in 0..ocel.events.len() {
+        //print %
+        #[cfg(feature = "progress-percentage")]
+        println!("EOG: {}%", (i as f32 / ocel.events.len() as f32 * 100.0));
+        let event = &ocel.events[i];
+        id_to_node.insert(event.id.clone(), eog.add_node(event.id.clone())); //add event_id as weight
+
+        for obj in &event.relationships{
+            //if object is in last_event_index, add edge
+            if let Some(last_event_id) = last_event_index.get(&obj.object_id) {
+                //add edge from last event to current event
+                edges.push((last_event_id.clone(), event.id.clone()));
+            }
+            //update last_event_index with current event
+            last_event_index.insert(obj.object_id.clone(), event.id.clone());
+
+        }
+    }
+
+    //add edges to eog
+    for (source, target) in edges{ //source/target: event_ids
+
+        eog.add_edge(*id_to_node.get(&source).unwrap(), *id_to_node.get(&target).unwrap(), ());
+    }
+    (eog, id_to_node)
+
     
+    //TODO: order of Events?
+    //TODO: use somthing like: arr = ocel.to_numpy()
+
+
+    /*
+    let mut eog = DiGraph::<String, ()>::new();
+    let mut id_to_index: HashMap<String, NodeIndex> = HashMap::new();
     //add all vertices
     for event in &ocel.events { 
         let id = event.id.clone();
@@ -68,11 +104,43 @@ pub fn construct_event_object_graph(ocel: &pm::OCEL) -> DiGraph<String, ()> {
             }
         }
     }
-    eog
+
+     */
+
+}
+
+fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &HashMap<String, NodeIndex>, presets: &mut HashMap<String, HashSet<String>>) -> HashSet<String> {
+
+    if presets.contains_key(&event_id){
+        return presets[&event_id].clone();
+    }
+
+    let predecessors: Vec<NodeIndex> = eog.neighbors_directed(*id_to_node.get(&event_id).unwrap(), petgraph::Direction::Incoming).collect();
+
+    //if event has no predecessors, return empty vector
+    if predecessors.is_empty(){
+        presets.insert(event_id.clone(), HashSet::new());
+        HashSet::new()
+    }else{
+
+        //add preset of each predecessor and predecessor itself to preset
+
+        let mut preset: HashSet<String> = HashSet::new();
+        for predecessor in predecessors {
+            let predecessor_event_id = eog[predecessor].clone();
+            //recursively get preset of predecessor
+            let predecessor_preset = calc_preset_recurv(eog, predecessor_event_id.clone(), id_to_node, presets);
+            preset.extend(predecessor_preset);
+            preset.insert(predecessor_event_id);
+        }
+        presets.insert(event_id.clone(), preset.clone());
+        preset
+    }
+
 }
 
 //TODO: not fully tested + return event ID?
-pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
+pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) -> HashMap<String, Vec<OCELEvent>> {
     //TODO: order important?
     #[cfg(feature = "progress")]
     println!("constructing presets ...");
@@ -81,29 +149,16 @@ pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
     //=> get all predecessors of event_id
 
     //TODO: does function change ocel?
-    let eog = construct_event_object_graph(ocel);
+    let (eog, id_to_node) = construct_event_object_graph(ocel);
     //key: id; value: preset
-    let mut presets: HashMap<String, Vec<OCELEvent>> = HashMap::new();
-
+    let mut presets: HashMap<String, HashSet<String>> = HashMap::new();
     
     /*
-    ancestors 
-    - maybe calc in own code if no good lib available
-    - maybe more efficient to use own code
-    
-    - use hash map to store already calculated presets
-    - use petgraph::visit::Dfs???
-    - reverse edges, check which node is reachable for each x
-    - get x from reversed event_id list
-    - calc preset recursively and store in hash map
-     */
-
-  
-    //get presets
+    let mut presets_: HashMap<String, Vec<OCELEvent>> = HashMap::new();
+    //get presets OLD
     for node in eog.node_indices() {
         //print %
-        #[cfg(feature = "progress-percentage")]
-        println!("Presets: {}%", (presets.len() as f32 / eog.node_count() as f32 * 100.0));
+        //println!("Presets: {}%", (presets.len() as f32 / eog.node_count() as f32 * 100.0));
 
 
         let ancestors: Vec<NodeIndex> = ancestors(&eog, node).filter(|n| *n != node).collect();
@@ -117,13 +172,52 @@ pub fn get_event_presets(ocel: &pm::OCEL) -> HashMap<String, Vec<OCELEvent>> {
             .cloned()
             .collect();
 
-        presets.insert(event_id.clone(), ancestors_events);
+        presets_.insert(event_id.clone(), ancestors_events);
     }
-    presets
+    return presets_;
+    
+     */
+    
+    for event_id in ocel.events.iter().map(|e| e.id.clone()) {
+
+        #[cfg(feature = "progress-percentage")]
+        println!("Presets: {}%", (presets.len() as f32 / eog.node_count() as f32 * 100.0));
+
+        //if presets already contains event_id, continue
+        if presets.contains_key(&event_id) {
+            continue;
+        }
+
+        //else calc preset
+        calc_preset_recurv(&eog, event_id.clone(), &id_to_node, &mut presets);
+
+    }
+    
+    
+    
+    //TODO temp: convert do OCELEvent
+    let mut event_presets: HashMap<String, Vec<OCELEvent>> = HashMap::new();
+    for (event_id, preset) in presets {
+        //get all events with event_id in ocel
+        event_presets.insert(event_id, preset.iter().map(|event_id| id_to_event[event_id].clone()).collect());
+    }
+    event_presets
+    
+    /*
+    ancestors 
+    - maybe calc in own code if no good lib available
+    - maybe more efficient to use own code
+    
+    - use hash map to store already calculated presets
+    - use petgraph::visit::Dfs???
+    - reverse edges, check which node is reachable for each x
+    - get x from reversed event_id list
+    - calc preset recursively and store in hash map
+     */
 }
 
 //TODO: not fully tested
-pub fn get_contexts_and_bindings (ocel: &pm::OCEL) -> (HashMap<String, HashMap<String, Counter<Vec<String>>>>,
+pub fn get_contexts_and_bindings (ocel: &pm::OCEL, presets: &HashMap<String, Vec<OCELEvent>>) -> (HashMap<String, HashMap<String, Counter<Vec<String>>>>,
                                                        HashMap<(String,String), HashMap<String, Vec<String>>>) {
     #[cfg(feature = "progress")]
     println!("constructing contexts and bindings...");
@@ -139,17 +233,27 @@ pub fn get_contexts_and_bindings (ocel: &pm::OCEL) -> (HashMap<String, HashMap<S
     /*
 
     for each event, save all objects that are involved
-                  HashMap [event_id, Vec [activity/EventType, HashMap [Objecttype, Vec<Objects>]]]
+                  HashMap [activity, Vec [activity/EventType, HashMap [Objecttype, Vec<Objects>]]]
     TODO: maybe event_id or ther attributes are unecessary
      */
     let mut bindings: HashMap<(String,String), HashMap<String, Vec<String>>> = HashMap::new();
     
-    let presets = get_event_presets(ocel);
+    //let presets = get_event_presets(ocel);
 
     //object id to object type
     let objects_to_objecttypes: HashMap<String, String> = ocel.objects.iter()
         .map(|o| (o.id.clone(), o.object_type.clone()))
         .collect();
+
+
+    for event_id in presets.keys(){
+        //object_type , Counter <Vec<Activity>> (counter: how often these activities occur with this object_type)
+        let mut context: HashMap<String, Counter<Vec<String>>> = HashMap::new();
+        //get all associated objects for event + event preset
+        let mut associated_objects: HashMap<String, Vec<String>> = HashMap::new(); // object_type, Vec<Objects with this type>
+        //TODO.....!!!!!!!
+    }
+
 
     //preset.keys(): event_id
     for event in ocel.events.clone() {
@@ -228,6 +332,98 @@ pub fn get_contexts_and_bindings (ocel: &pm::OCEL) -> (HashMap<String, HashMap<S
     (contexts, bindings)
 }
 
+//returns context and expanded bindings
+pub fn _get_contexts_and_bindings(
+    ocel: &pm::OCEL, 
+    id_to_event: &HashMap<String, OCELEvent>, 
+    comp_presets: &Option<HashMap<String, Vec<OCELEvent>>>,
+    all_object_types: &HashSet<String>)
+    -> (HashMap<String, HashMap<String, Counter<Vec<String>>>>,
+        HashMap<String, Vec<(String, HashMap<String,HashSet<String>>)>>) {
+    #[cfg(feature = "progress")]
+    println!("constructing contexts and bindings...");
+
+    let mut contexts: HashMap<String, HashMap<String, Counter<Vec<String>>>> = HashMap::new(); //event_id, HashMap [object_type, Counter( activities)]
+    let mut bindings: HashMap<String, Vec<(String, HashMap<String,HashSet<String>>)>> = HashMap::new(); //map of binding sequences: event_id, Vec< activity: object_types: objects>
+
+    let presets: HashMap<String, Vec<OCELEvent>> = comp_presets.clone().unwrap_or_else(|| get_event_presets(ocel, id_to_event)); //calculate presets if not alaready given
+
+    //object id to object type
+    let objects_to_objecttypes: HashMap<String, String> = ocel.objects.iter()
+        .map(|o| (o.id.clone(), o.object_type.clone()))
+        .collect();
+
+    for (event_id, mut preset) in presets {
+        let mut context: HashMap<String, Counter<Vec<String>>> = HashMap::new();
+        let mut binding_sequence: Vec<(String, HashMap<String, HashSet<String>>)> = Vec::new(); //activity, HashMap [obejct_type, Vec<Objects with this type>]
+
+
+
+        //object_type, object_id
+        let mut associated_objects: HashMap<String, HashSet<String>> = HashMap::new();
+        //add current objects to associated_objects
+        for rel in id_to_event.get(&event_id).unwrap().relationships.clone() {
+            associated_objects.entry(objects_to_objecttypes[&rel.object_id].clone())
+                .or_insert_with(HashSet::new)
+                .insert(rel.object_id.clone());
+        }
+
+        //get all the associated objects for preset
+        for event in preset.clone(){
+            let mut associated_objects_of_event: HashMap<String, HashSet<String>> = HashMap::new();
+            event.relationships.iter()
+                .map(|rel| rel.object_id.clone())
+                .for_each(|object_id| {
+                    let object_type = objects_to_objecttypes.get(&object_id).unwrap();
+                    associated_objects.entry(object_type.clone())
+                        .or_insert_with(HashSet::new)
+                        .insert(object_id.clone());
+                    associated_objects_of_event.entry(object_type.clone())
+                        .or_insert_with(HashSet::new)
+                        .insert(object_id.clone());
+                });
+
+            //add object to binding_sequence
+            binding_sequence.push((event.event_type.clone(), associated_objects_of_event));
+
+        }
+        //addisiotnaly push the current event to the binding_sequence for expanded binding sequence
+        //binding_sequence.push((id_to_event.get(&event_id).unwrap().event_type.clone(), get_associated_objects(id_to_event.get(&event_id).unwrap(), &objects_to_objecttypes)));
+        
+        for object_type in all_object_types.clone(){
+            
+            let objects: Option<&HashSet<String>> = associated_objects.get(&object_type);
+            
+            if objects.is_none() {
+                //add empty context for object_type if it does not exist
+                context.entry(object_type.clone())
+                    .or_insert_with(Counter::new).update(vec![vec![]]);
+                continue;
+            }
+            
+            for object in objects.unwrap() {
+                //prefix all activities that are associated with this object
+                let prefix: Vec<String> = preset.iter()
+                    .filter(|e| e.relationships.iter().any(|rel| rel.object_id == *object))
+                    .map(|e| e.event_type.clone())
+                    .collect();
+              
+                context.entry(object_type.clone())
+                    .or_insert_with(Counter::new)
+                    .update(vec![prefix.clone()]);
+                //println!("[DEBUG] Context for event {}: {:?}", event_id, context.get(&object_type.clone()));
+            }
+        }
+        //add context to contexts
+        contexts.insert(event_id.clone(), context);
+        //add binding_sequence to bindings
+        bindings.insert(event_id.clone(), binding_sequence);
+    }
+    println!("[DEBUG] contexts: {:#?}", contexts);
+    //TODO: some inconsistencies with order of activities in context
+    (contexts, bindings)
+}
+
 //hashing context
 //TODO: maybe use serde_JSON: safer but slower
 fn hash_context(context: &HashMap<String, Counter<Vec<String>>>) -> u64 {
@@ -240,13 +436,17 @@ fn hash_context(context: &HashMap<String, Counter<Vec<String>>>) -> u64 {
         //hash key
         key.hash(&mut hasher);
 
-        // extract counter keys
         if let Some(counter) = context.get(key) {
-            // collect keys from the counter
-            let mut vec_keys: Vec<String> = counter.iter().flat_map(|(k, _count)| k.clone()).collect::<Vec<String>>();
-            // sort keys to ensure consistent hashing
-            vec_keys.sort(); //TODO maybe whole different approach needed
-            vec_keys.hash(&mut hasher);
+
+            let mut sorted_counter_keys: Vec<(&Vec<String>, &usize)> = counter.iter().collect();
+            sorted_counter_keys.sort_by(|(a, _), (b, _)| a.cmp(b)); // sorting
+
+            for (vec, count) in sorted_counter_keys {
+                let mut sorted_vec = vec.clone();
+                sorted_vec.sort(); //sort inner vec
+                sorted_vec.hash(&mut hasher);
+                count.hash(&mut hasher);
+            }
         }
     }
     hasher.finish()
@@ -263,16 +463,31 @@ fn get_activities(event_id: String, ocel: &pm::OCEL) -> Vec<String> {
     activities
 }
 
+pub fn get_associated_objects(event: &OCELEvent, objects_to_objecttypes: &HashMap<String, String>) -> HashMap<String, HashSet<String>> {
+    //get all objects for event_id
+    let mut associated_objects_of_event: HashMap<String, HashSet<String>> = HashMap::new();
+    event.relationships.iter()
+        .map(|rel| rel.object_id.clone())
+        .for_each(|object_id| {
+            let object_type = objects_to_objecttypes.get(&object_id).unwrap();
+            associated_objects_of_event.entry(object_type.clone())
+                .or_insert_with(HashSet::new)
+                .insert(object_id.clone());
+        });
+    associated_objects_of_event
+}
+
+
+
 //TODO: empty contexts problem 
 
 //                                              context: HashMap [event_id, HashMap [object_type, Counter(activity/EventType)]]
+/*
 pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, HashMap<String, Counter<Vec<String>>>>) 
     -> (HashMap<String, HashSet<String>>, HashMap<u64, (HashSet<String>, HashSet<String>)>) {///return: <event_id, Vec<activities>> , seen context (in raw format => formatting costs time)
     #[cfg(feature = "progress")]
     println!("getting enabled log activities ...");
-    
-    //assumption: each event is exaclty in one enables log activity entry !!!!
-    
+
 
     //all duplicate contexts: Hashmap: hashed(context), (event_ids, activities)
     let mut seen_contexts: HashMap<u64, (HashSet<String>, HashSet<String>)> = HashMap::new();
@@ -314,5 +529,46 @@ pub fn get_enabled_log_activities(ocel: &pm::OCEL, contexts: &HashMap<String, Ha
         }
     }
     (enabled_log_activities, seen_contexts)
+}
+
+ */
+
+
+pub fn get_enabled_log_activities(
+    contexts: &HashMap<String, HashMap<String, Counter<Vec<String>>>>,
+    id_to_event: &HashMap<String, OCELEvent>, ) 
+    -> (HashMap<String, HashSet<String>>, HashMap<u64, HashSet<String>>) {
+    #[cfg(feature = "progress")]
+    println!("getting enabled log activities ...");
+
+    let mut seen_contexts: HashMap<u64, HashSet<String>> = HashMap::new(); //hashed context, event_id
+    let mut context_event_map: HashMap<u64, HashSet<String>> = HashMap::new(); //hashed context, event_ids
+    //create context map
+    for (event_id, context) in contexts{
+        let hashed_context = hash_context(context);
+
+        //if context is already seen, add event_id to seen_contexts
+        if !seen_contexts.contains_key(&hashed_context) {
+            seen_contexts.insert(hashed_context, HashSet::from_iter([event_id.clone()]));
+            context_event_map.insert(hashed_context, HashSet::from_iter([event_id.clone()]));
+        } else {
+            seen_contexts.get_mut(&hashed_context).unwrap().insert(event_id.clone());
+            context_event_map.get_mut(&hashed_context).unwrap().insert(event_id.clone());
+        }
+    }
+    let mut enabled_log_activities: HashMap<String, HashSet<String>> = HashMap::new(); //event_id, activities
+    for (context, event_ids) in seen_contexts {
+
+        let en_activities: HashSet<String> = event_ids.iter()
+            .map(|event_id| id_to_event.get(event_id).unwrap().event_type.clone()).collect();
+
+        for event_id in event_ids {
+            enabled_log_activities.entry(event_id.clone())
+                .or_default()
+                .extend(en_activities.clone());
+        }
+    }
+
+    (enabled_log_activities, context_event_map)
 }
 

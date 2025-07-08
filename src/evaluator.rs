@@ -3,17 +3,16 @@ extern crate process_mining as pm;
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 use counter::Counter;
-
-
-use crate::{enabled_log_act, NUMBER_OF_ITERATIONS};
+use process_mining::ocel::ocel_struct::OCELEvent;
+use crate::{enabled_log_act, LOG_MODEL, NUMBER_OF_ITERATIONS, VERSION_NAME};
 use crate::enabled_model_act;
 use crate::structs_for_ocpm::OCPN;
-use crate::utils::evaluate_runtime;
+use crate::utils::{evaluate_runtime, save_analytics};
 
 //calc fitness and precision for given OCEL and OCPN
 pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
     let mut starting_times: Vec<Instant> = Vec::<Instant>::new();
-    #[cfg(feature = "stats")]{
+    #[cfg (feature = "stats")]{
         println!("######## Evaluating with statistics ########");
 
         starting_times.push(Instant::now());
@@ -21,44 +20,55 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
 
 
     let events_ids: Vec<String> = ocel.events.iter().map(|event| event.id.clone()).collect();
+    let all_object_types: HashSet<String> = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
     #[cfg(feature = "stats")]{
         let mut temp: Vec<String> = Vec::new();
+        let mut temp2: HashSet<String> = HashSet::new();
+        let mut temp3: HashMap<String, OCELEvent> = HashMap::new();
     
         for i in 1..NUMBER_OF_ITERATIONS {
             temp = ocel.events.iter().map(|event| event.id.clone()).collect();
+            temp2 = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
+            temp3 = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
         }
         starting_times.push(Instant::now());
     }
 
-    let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel);
+    let presets = enabled_log_act::get_event_presets(&ocel, &id_to_event); //TODO inefficient is calculated twice
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_log_act::get_contexts_and_bindings(&ocel);
+            enabled_log_act::get_event_presets(&ocel, &id_to_event);
+        }
+        starting_times.push(Instant::now());
+    }
+    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types);
+//TODO TODO context empty????????????? HILFE
+    //let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel, &presets);
+    #[cfg(feature = "stats")]{
+        for i in 1..NUMBER_OF_ITERATIONS {
+            enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types);
+        }
+        starting_times.push(Instant::now());
+    }
+    //debug
+    //let mut contexts_: Vec<_> = contexts.iter().collect();
+    //contexts_.sort_by_key(|(k, _)| k.parse::<u32>().unwrap_or(0));
+    
+    
+    let (enabled_log_activities, context_map) = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
+    #[cfg(feature = "stats")]{
+        for i in 1..NUMBER_OF_ITERATIONS {
+            enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
         }
         starting_times.push(Instant::now());
     }
     
-    let presets = enabled_log_act::get_event_presets(&ocel); //TODO inefficient is calculated twice
+    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event);
+    //let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &ocel, &presets, &bindings, &contexts_map);
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_log_act::get_event_presets(&ocel);
-        }
-        starting_times.push(Instant::now());
-    }
-    
-    
-    let (enabled_log_activities, contexts_map) = enabled_log_act::get_enabled_log_activities(&ocel, &contexts);
-    #[cfg(feature = "stats")]{
-        for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_log_act::get_enabled_log_activities(&ocel, &contexts);
-        }
-        starting_times.push(Instant::now());
-    }
-    
-    let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &presets, &bindings, &contexts_map);
-    #[cfg(feature = "stats")]{
-        for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_model_act::get_enabled_model_activities(&ocpn, &presets, &bindings, &contexts_map);
+            enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event);
         }
         starting_times.push(Instant::now());
     }
@@ -80,9 +90,14 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
 
     //evaluate runtime
     #[cfg(feature = "stats")]
-    evaluate_runtime(&starting_times, &vec!["get event ids".to_string(), "get context and bindings".to_string(),
-                                            "get presets".to_string(), "get enabled log activities".to_string(),
+    evaluate_runtime( &starting_times, &vec!["get event ids".to_string(), "get presets".to_string(), "get context and bindings".to_string(),
+                                             "get enabled log activities".to_string(),
                                             "get enabled model activities".to_string(), "calculate fitness and precision".to_string()]);
+    #[cfg(feature = "save_stats")]
+    save_analytics(VERSION_NAME.to_string(), LOG_MODEL.to_string(), &starting_times, &vec!["get event ids".to_string(), "get presets".to_string(), "get context and bindings".to_string(),
+                                                             "get enabled log activities".to_string(),
+                                                            "get enabled model activities".to_string(), "calculate fitness and precision".to_string()]);
+    
     
     (fitness, precision)
 }

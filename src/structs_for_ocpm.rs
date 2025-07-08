@@ -11,6 +11,7 @@ use std::fs::File;
 use std::io::Write;
 use petgraph::graph::DiGraph;
 use petgraph::visit::NodeRef;
+use serde_json::json;
 
 //OCPN
 #[derive(Clone)]
@@ -63,7 +64,7 @@ impl OCPN {
         let mut p_id = "".to_string();
         if source_id.is_none() || !self.places.contains_key(&source_id.clone().unwrap()) {
             //target place does not exist yet
-            p_id = self.add_place(source_id, object_type.clone())?;
+            p_id = self.add_place(source_id, object_type.clone(), false)?; //default is_initial is false
         }else{
             p_id = source_id.unwrap();
         }
@@ -107,7 +108,7 @@ impl OCPN {
         let mut p_id = "".to_string();
         if target_id.is_none() || !self.places.contains_key(&target_id.clone().unwrap()) {
             //target place does not exist yet
-            p_id = self.add_place(target_id, object_type.clone())?;
+            p_id = self.add_place(target_id, object_type.clone(), false)?; //default is_initial is false
         }else{
             p_id = target_id.unwrap();
         }
@@ -247,7 +248,7 @@ impl OCPN {
         Ok(id)
     }
 
-    pub fn add_place(&mut self, place_id: Option<String>, object_type: String) -> Result<String, String> {
+    pub fn add_place(&mut self, place_id: Option<String>, object_type: String, is_initial: bool) -> Result<String, String> {
         //add a new place to the OCPN
 
         let id:String = place_id.clone().unwrap_or(
@@ -259,6 +260,7 @@ impl OCPN {
             input_transitions: vec![], //no input transitions by default
             output_transitions: vec![], //no output transitions by default
             object_type: object_type.clone(), //set object type of the place
+            is_initial, //set initial place
         };
         self.places.insert(id.clone(), place);
         Ok(id)
@@ -278,6 +280,10 @@ impl OCPN {
         }
     }
 
+
+    //------------------ IMPORTS --------------------------------
+
+    
 
 
     //------------------ EXPORTS --------------------------------
@@ -324,8 +330,9 @@ impl OCPN {
 
 
     //---------------- GETTERS --------------------------------
+    ///return: transition_id, [object ids that are involved]
+    pub fn get_enabled_transitions_with_breakcondition(&self, marking: &Marking, breaking_transitions: Option<&HashSet<String>>) -> Vec<(String, Vec<String>)> {
 
-    pub fn get_enabled_transitions_with_breakcondition(&self, marking: &Marking, binding_sequence: Option<&HashMap<String, Vec<Vec<String>>>>) -> Vec<(String, Vec<String>)> { //return: transition_id, [object ids that are involved]
         //ASSUMPTION: binding inputs matches the input places of the transitions !!!! TODO
         //get enabled transitions from the marking
         //if binding_sequence != None: return first found transition that is also in binding_sequence
@@ -333,7 +340,7 @@ impl OCPN {
         let mut enabled_transitions_with_obj_ids : Vec<(String, Vec<String>)> = vec![]; //transition_id, [object ids that are involved]
 
         //get all transtions that are associated with the all places in the marking
-        //TODO: faster to directly calc or filter with assitiated transitions
+        //TODO: faster to directly calc or filter with assitiated transitions?
         let assotiated_transitions: HashSet<String> = self.get_associated_transitions_of_marking(marking, false);
 
         //filter transitions that have all input places in the marking
@@ -357,13 +364,13 @@ impl OCPN {
                                 .filter(|obj_id| {
                                     let matches = *self.object_to_type.get(*obj_id).unwrap() == object_type;
                                     if matches {
-                                        involved_objects.push(obj_id.clone().to_string()); // Objekt pushen
+                                        involved_objects.push(obj_id.clone().to_string());
                                     }
-                                    matches // Rückgabe für den Filter
+                                    matches
                                 })
                                 .count();
 
-                            if matching_count < count {
+                            if matching_count < count { //not enough objects of the required type in the marking
                                 is_enabled = false;
                                 break;
                             }
@@ -379,19 +386,19 @@ impl OCPN {
 
                     enabled_transitions_with_obj_ids.push((transition_id.clone(), involved_objects.clone()));
                     //if binding_sequence is provided, check if this transition is in the binding_sequence
-                    if let Some(binding_seq) = binding_sequence {
-                        if binding_seq.contains_key(&transition_id) {
+                    if let Some(binding_seq) = breaking_transitions {
+                        if binding_seq.contains(&transition_id) {
                             //if it is, return it immediately
                             return vec![(transition_id, involved_objects.clone())];
                         }
                     }
                 }
-            }
+            }else{println!("error: transition {} not found in OCPN", transition_id);}
 
         }
 
         //if breakting condition is provided (binding_sequence is Some), and it has not returned a transition yet, return empty vector
-        if let Some(binding_seq) = binding_sequence {
+        if let Some(_) = breaking_transitions {
             return vec![];
         }
         enabled_transitions_with_obj_ids
@@ -433,11 +440,34 @@ impl OCPN {
         required
     }
 
+    ///removes first binding that is enabled in the marking
+    pub fn remove_next_binding_(&self, binding_sequence: &mut Vec<(String, HashMap<String,HashSet<String>>)>, marking: &Marking) -> Option<(String, HashMap<String, HashSet<String>>)> { //activity, [object_types: object_ids]>
+
+        if binding_sequence.is_empty() { return None }
+
+        //Binding Sequence: <activity, [object_type: object_ids]>
+        let transitions_of_binding:HashSet<String> = binding_sequence.iter().map(|(transition, _)| transition.clone()).collect();
+        //get first enabled transition from the marking
+        let enabled_transition = self.get_enabled_transitions_with_breakcondition(&marking, Some(&transitions_of_binding));
+        //DEBUG:
+        if enabled_transition.len() > 1 { println!("FAULT: too many transtions found !!!! ({})", enabled_transition.len());}
+        if enabled_transition.is_empty() {
+            //no enabled transition found
+            return None;
+        }
+
+        if let Some(pos) = binding_sequence.iter().position(|(t_id, _)| t_id == &enabled_transition.first().unwrap().0) {
+            let x = Some(binding_sequence.remove(pos));
+            return x;
+        }
+        None
+    }
+
     pub fn remove_next_binding(&self, binding_sequence: &mut HashMap<String, Vec<Vec<String>>>, marking: &Marking) -> Option<(String, Vec<String>)> {//event_type, [object_ids (for first event with this event_type)]>
         //Binding Sequence: <event_type, [[object_ids (for first event with this event_type)], [object_ids (for second event with this event_type), ...]]>
 
         //get first enabled transition from the marking
-        let enabled_transition = self.get_enabled_transitions_with_breakcondition(&marking, Some(binding_sequence));
+        let enabled_transition = self.get_enabled_transitions_with_breakcondition(&marking, Some(&binding_sequence.iter().map(|(trans, _)| trans.clone()).collect::<HashSet<String>>()));
         if enabled_transition.is_empty() {
             //no enabled transition found
             return None;
@@ -465,10 +495,98 @@ impl OCPN {
         }
         None
     }
+    ///Retutn Vec of bindings: Transition_id, [object_type: object_ids]
+    pub fn get_enabled_silent_transitions_bindings_(&self, marking: &Marking) -> Vec<(String, HashMap<String,HashSet<String>>)> {
+
+        let mut enabled_silent_transitions: Vec<(String, HashMap<String,HashSet<String>>)> = vec![]; //result
+        let mut associated_silent_transitions: Vec<(String, HashSet<String>)> = vec![]; //transition_id, object ids that are involved TODO
+
+        if marking.len() <= self.silent_transtions.len() {
+            //iterate over marking => is smaller
+            for (place_id, objects) in marking.iter() {
+                //check if this place has a silent transition
+                for transition_ in self.places.get(place_id).unwrap().output_transitions.iter(){
+                    
+                    let transition = self.silent_transtions.get(transition_.0.as_str());
+                    if transition.is_none() { continue; }  //not a silent transition
+
+                    let mut is_enabled = true;
+                    let mut temp_marking = marking.clone();
+                    for (input,_) in transition.unwrap().input_places.iter() {
+
+                        let mut involved_objects: HashMap<String, HashSet<String>> = HashMap::new(); //objects that are involved in this transition
+
+                        if !temp_marking.contains_key(input) {
+                            is_enabled = false;
+                            break
+                        }else{
+                            for object in temp_marking.clone().get(input).unwrap().iter(){
+                                involved_objects.entry(self.object_to_type.get(object).unwrap().clone()).or_insert(HashSet::new()).insert(object.clone()); //add object to involved objects
+                                if temp_marking.get(input).unwrap().is_empty() {
+                                    temp_marking.remove(input); //if place is empty, remove it from the marking
+                                }
+                            }
+                        }
+                        //TODO: if every input is satisfied, the whole transiiton must be satisfied
+                        if is_enabled {
+                            //add transition to enabled silent transitions
+                            enabled_silent_transitions.push((transition_.0.clone(), involved_objects.clone()));
+                        }
+                    }
+                }
+            }
+
+        }else{
+            for (id, transition) in self.silent_transtions.iter() {
+                //check if this transition is enabled
+                let mut is_enabled = true;
+                let mut temp_marking = marking.clone();
+                for (input,_) in transition.input_places.iter(){
+                    
+                    let mut involved_objects: HashMap<String, HashSet<String>> = HashMap::new(); //objects that are involved in this transition
+                    
+                    if !temp_marking.contains_key(input) {
+                        is_enabled = false;
+                        break
+                    }else{
+                        
+                        for object in temp_marking.clone().get(input).unwrap().iter(){
+                            involved_objects.entry(self.object_to_type.get(object).unwrap().clone()).or_insert(HashSet::new()).insert(object.clone()); //add object to involved objects
+                            if temp_marking.get(input).unwrap().is_empty() {
+                                temp_marking.remove(input); //if place is empty, remove it from the marking
+                            }
+                        }
+                        
+                        /*
+                        let object = temp_marking.get_mut(input).unwrap().iter().next().cloned().map(|obj|  temp_marking
+                            .get_mut(input)
+                            .unwrap()
+                            .take(&obj).unwrap()).unwrap(); //remove one object from the marking
+                        
+                        involved_objects.entry(self.object_to_type.get(&object).unwrap().clone()).or_insert(HashSet::new()).insert(object.clone()); //add object to involved objects
+                        if temp_marking.get(input).unwrap().is_empty() { 
+                            temp_marking.remove(input); //if place is empty, remove it from the marking
+                        } 
+                        
+                         */
+                    }
+                    //TODO: if every input is satisfied, the whole transiiton must be satisfied
+                    if is_enabled {
+                        //add transition to enabled silent transitions
+                        enabled_silent_transitions.push((id.clone(), involved_objects.clone()));
+                    }
+                }
+            }
+        }
+
+        enabled_silent_transitions
+    }
+    
+  
 
     pub fn get_enabled_silent_transition_bindings(&self, marking: &Marking) -> Vec<(String, Vec<String>)> { //return transition_id, [object ids that are involved]
         
-        //what is better check all silent transitions or check all places in Marking? ==> compare size of both
+        //what is better: check all silent transitions or check all places in Marking? ==> compare size of both
         
         let mut enabled_silent_transition_bindings: Vec<(String, Vec<String>)> = vec![]; //result
         
@@ -513,6 +631,56 @@ impl OCPN {
 
 
     //---------------- EXECUTION --------------------------------
+
+    pub fn execute_binding_(&self, binding: &mut (String, HashMap<String, HashSet<String>>), marking: Marking) -> Marking{
+        ///binding must be executable
+        //Binding: (activity, [object_types: object_ids])
+        let mut res_marking = marking.clone(); //clone marking to modify it
+        let mut temp_binding = binding.clone(); //clone binding to modify it
+        //TODO: what to do if there are mutliple transitions
+        //TODO each transition is added doubeld to activity_to_transitions!
+        for transition_id in self.activity_to_transitions.get(&binding.0).unwrap_or(&vec![]) {
+            let mut silent_transition = false;
+            //remove objects from input places TODO: evt remove the silent transiiton part
+            for (place_id, object_type) in self.transitions.get(transition_id).unwrap_or_else(||{silent_transition = true; self.silent_transtions.get(&binding.0).unwrap()}).input_places.clone() {
+                
+                //if silent transition, all posssible objects have to be moved from the marking (there are no multiple arcs)
+                if silent_transition {
+                    for (object_type, objs) in temp_binding.1.iter_mut() {
+                        for object in objs.iter(){
+                            res_marking.get_mut(&place_id).unwrap().remove(object); //remove from marking
+                        }
+                    }
+                }else{
+                    //continue normaly
+                    if let Some(objs) = temp_binding.1.get_mut(&object_type) {
+                        if let Some(object_id) = objs.iter().next().cloned() {
+                            objs.remove(&object_id); // remove from temp binding
+                            res_marking
+                                .get_mut(&place_id)
+                                .unwrap()
+                                .remove(&object_id); //remove from marking
+                        }
+                    }
+                }
+
+
+                
+                
+                //if place is empty, remove it from the marking
+                if res_marking.get(&place_id).unwrap().is_empty() {
+                    res_marking.remove(&place_id);
+                }
+            }
+            //add objects from output places
+            for (place_id, object_type) in self.transitions.get(transition_id).unwrap_or_else(||self.silent_transtions.get(&binding.0).unwrap()).output_places.iter() {
+                res_marking.entry(place_id.clone()).or_insert_with(HashSet::new)
+                    .extend(binding.1.get(object_type).unwrap().clone());
+            }
+            break;
+        }
+        res_marking
+    }
 
     pub fn execute_binding(&self, binding: &mut (String, Vec<String>), marking: &Marking) -> Marking{ ///binding: (transition_id, [object_ids])
 
@@ -590,7 +758,8 @@ impl OCPN {
 pub struct Place{
     pub input_transitions: Vec<(String, String)>, //transition ids, object type
     pub output_transitions: Vec<(String, String)>, //transition ids, object type
-    pub object_type: String //object type of the place
+    pub object_type: String, //object type of the place
+    pub is_initial: bool,
 }
 #[derive(Clone)]
 pub struct Transition {

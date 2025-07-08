@@ -22,9 +22,11 @@ mod test;
 mod utils;
 mod enabled_model_act;
 
-const NUMBER_OF_ITERATIONS: u32 = 1_000;
+const NUMBER_OF_ITERATIONS: u32 = 100_000;
+const VERSION_NAME: &str = "v2_multi-threaded +";
+const LOG_MODEL: &str = "small running example";
 /*
-100.000 results (no low energy mode):
+100.000 results (no low energy mode) v1:small running example:
 0.00087 55%
 0.00040 25.7%
 0.00020 13.0%
@@ -36,31 +38,43 @@ average: 0.001576
 
 fn main() {
 
+    run();
     //test::test_ocpn();
-    test_running_example();
-
+    //test_running_example();
     
     
-    /*
-    test::test_enabled_model_act();
+    //test::test_enabled_model_act();
    
-    test::test_enabled_log_activities();
-    test::test_context_and_bindings();
-    test::test_event_presets();
-    test::test_binding_sequence();
+    //test::test_enabled_log_activities();
+    //test::test_context_and_bindings();
+    //test::test_event_presets();
+    //test::test_binding_sequence();
     //test::test_eog();
     
-     */
+     
 }
 
+fn run(){
+    let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
+    let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
+
+    let ocel = test::get_test_ocel();
+    let ocpn = test::get_test_ocpn_small();
+    
+    let (fitness, precision) = evaluator::apply(ocel, ocpn.clone());
+
+    println!("fitness: {}", fitness);
+    println!("precision: {}", precision);
+    
+}
 
 
 fn test_running_example(){
 
     let ocel = test::get_test_ocel();
     let ocpn = test::get_test_ocpn_small();
-
-    
+    ;
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
 
     //test
     println!("test enabled model activities for event e5");
@@ -69,25 +83,32 @@ fn test_running_example(){
     //assert_eq!(enabled_model_activities,
         //["Lift off".to_string(), "Pick up @ dest".to_string()].iter().cloned().collect::<HashSet<String>>());
 
-    let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel);
+    let presets = enabled_log_act::get_event_presets(&ocel, &id_to_event);
+    println!(".");
+    
+    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
+    let all_object_types: HashSet<String> = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
+    
+    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &None, &all_object_types);
+
+    //let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel,&presets);
     println!(".");
     //print_contexts(&contexts);
-    let presets = enabled_log_act::get_event_presets(&ocel);
+    
+    let enabled_log_activities = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
     println!(".");
-    let (enabled_log_activities, contexts_map) = enabled_log_act::get_enabled_log_activities(&ocel, &contexts);
-    println!(".");
-    let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &presets, &bindings, &contexts_map);
+    //let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &ocel, &presets, &bindings, &HashMap::new());
     println!(".");
 
     //save_to_ron(&contexts_map.clone(), "src/test/Expected results (running example)/context_map.ron").unwrap();
 
-    test_bidnings(&bindings);
-    test_contexts(&contexts);
     test_presets(&presets);
-    test_context_map(&contexts_map);
+    //test_bidnings(&bindings);
+    test_contexts(&contexts);
+    //test_context_map(&contexts_map);
 
-    test_enabled_log_activities(&enabled_log_activities, ocpn.clone());
-    test_enabled_model_activities(&enabled_model_activities, ocpn.clone());
+    //test_enabled_log_activities(&enabled_log_activities, ocpn.clone());
+    //test_enabled_model_activities(&enabled_model_activities, ocpn.clone());
 
     let (fitness, precision) = evaluator::apply(ocel, ocpn.clone());
 
@@ -403,6 +424,9 @@ fn test_bidnings(bindings: &HashMap<(String, String), HashMap<String, Vec<String
     //everything is fine
     print!("   -> Bindings are correct!\n\n\n");
 }
+
+
+
 
 
 

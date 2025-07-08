@@ -1,0 +1,241 @@
+
+
+
+
+### Run v2_multi-threaded time: 2025-07-08_22-02-45 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.000741764 seconds
+get context and bindings                           : 0.000326062 seconds
+get presets                                        : 0.000156708 seconds
+get enabled log activities                         : 0.000090108 seconds
+calculate fitness and precision                    : 0.000020156 seconds
+get event ids                                      : 0.000010223 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 55.198513 %
+get context and bindings                           : 24.263968 %
+get presets                                        : 11.661456 %
+get enabled log activities                         : 6.7054043 %
+calculate fitness and precision                    : 1.4999126 %
+get event ids                                      : 0.76074654 %
+
+-------------Total Time-----------
+134.504201042 Seconds With 100000 iterations
+
+-------------Average Time-----------
+Average time: 0.00134504201042 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+### Run v2 time: 2025-07-08_21-58-52 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.001216826 seconds
+get context and bindings                           : 0.000326491 seconds
+get presets                                        : 0.000155675 seconds
+get enabled log activities                         : 0.000090733 seconds
+calculate fitness and precision                    : 0.000020103 seconds
+get event ids                                      : 0.000010447 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 66.90864 %
+get context and bindings                           : 17.9525 %
+get presets                                        : 8.559977 %
+get enabled log activities                         : 4.989063 %
+calculate fitness and precision                    : 1.1053876 %
+get event ids                                      : 0.5744408 %
+
+-------------Total Time-----------
+182.029715625 Seconds With 100000 iterations
+
+-------------Average Time-----------
+Average time: 0.00182029715625 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+### Run v1_fix time: 2025-07-01_22-57-56 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.001515309 seconds
+get context and bindings                           : 0.000411429 seconds
+get presets                                        : 0.000207706 seconds
+get enabled log activities                         : 0.000068243 seconds
+calculate fitness and precision                    : 0.000019937 seconds
+get event ids                                      : 0.00000053 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 68.22167 %
+get context and bindings                           : 18.523201 %
+get presets                                        : 9.351261 %
+get enabled log activities                         : 3.0724106 %
+calculate fitness and precision                    : 0.89759606 %
+get event ids                                      : 0.02386146 %
+
+-------------Total Time-----------
+2.224385334 Seconds With 1000 iterations
+
+-------------Average Time-----------
+Average time: 0.002224385334 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+### Run v1 time: 2025-06-29_23-04-10 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.000911742 seconds
+get context and bindings                           : 0.000405176 seconds
+get presets                                        : 0.000204361 seconds
+get enabled log activities                         : 0.000080358 seconds
+calculate fitness and precision                    : 0.000020117 seconds
+get event ids                                      : 0.000000535 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 56.25154 %
+get context and bindings                           : 24.998053 %
+get presets                                        : 12.608415 %
+get enabled log activities                         : 4.9578295 %
+calculate fitness and precision                    : 1.2411541 %
+get event ids                                      : 0.033007775 %
+
+-------------Total Time-----------
+1622.294620875 Seconds With 1000000 iterations
+
+-------------Average Time-----------
+Average time: 0.0016222946208749999 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+### Run v1 time: 2025-06-29_21-57-11 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.000907561 seconds
+get context and bindings                           : 0.000403269 seconds
+get presets                                        : 0.000205007 seconds
+get enabled log activities                         : 0.00007359 seconds
+calculate fitness and precision                    : 0.000020108 seconds
+get event ids                                      : 0.000000546 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 56.418144 %
+get context and bindings                           : 25.069046 %
+get presets                                        : 12.744173 %
+get enabled log activities                         : 4.574691 %
+calculate fitness and precision                    : 1.2500052 %
+get event ids                                      : 0.033941858 %
+
+-------------Total Time-----------
+805.04309775 Seconds With 500000 iterations
+
+-------------Average Time-----------
+Average time: 0.0016100861955 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+### Run v1 time: 2025-06-29_21-41-30 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.000945165 seconds
+get context and bindings                           : 0.000413719 seconds
+get presets                                        : 0.000204679 seconds
+get enabled log activities                         : 0.00007326 seconds
+calculate fitness and precision                    : 0.000020163 seconds
+get event ids                                      : 0.000000554 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 57.073475 %
+get context and bindings                           : 24.982285 %
+get presets                                        : 12.359473 %
+get enabled log activities                         : 4.4237804 %
+calculate fitness and precision                    : 1.217536 %
+get event ids                                      : 0.033453107 %
+
+-------------Total Time-----------
+1.65953475 Seconds With 1000 iterations
+
+-------------Average Time-----------
+Average time: 0.0016595347499999999 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+### Run v1 time: 2025-06-29_21-41-22 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.000890461 seconds
+get context and bindings                           : 0.000415872 seconds
+get presets                                        : 0.000203388 seconds
+get enabled log activities                         : 0.00007251 seconds
+calculate fitness and precision                    : 0.000019471 seconds
+get event ids                                      : 0.000000546 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 55.625748 %
+get context and bindings                           : 25.978893 %
+get presets                                        : 12.705339 %
+get enabled log activities                         : 4.5295897 %
+calculate fitness and precision                    : 1.2163239 %
+get event ids                                      : 0.03410779 %
+
+-------------Total Time-----------
+1.6033413749999998 Seconds With 1000 iterations
+
+-------------Average Time-----------
+Average time: 0.001603341375 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
