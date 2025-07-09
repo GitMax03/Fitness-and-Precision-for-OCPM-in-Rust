@@ -55,8 +55,8 @@ fn main() {
 }
 
 fn run(){
-    let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
-    let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
+    //let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
+    //let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
 
     let ocel = test::get_test_ocel();
     let ocpn = test::get_test_ocpn_small();

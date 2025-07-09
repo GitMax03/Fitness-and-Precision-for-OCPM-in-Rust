@@ -128,6 +128,15 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
         //print enabled model activities
         //println!("Enabled model activities for event {}: {:?}", event_id, enabled_model_activities.get(event_id).unwrap());
 
+        /*
+        println!("Event id: {}", event_id);
+        println!("Numerator: {}", numerator);
+        println!("Fit denominator: {}", fit_denominator);
+        println!("Prec denominator: {}", prec_denominator);
+        println!("-----------------------------------------");
+        
+         */
+
         fitness = fitness + numerator / fit_denominator;
         precision = precision + numerator / prec_denominator;
     }

@@ -97,6 +97,7 @@ pub fn get_enabled_model_activities_(
     for (_, events) in context_event_map{
         //enabled model activities for this context
         
+        /*
         let mut result: HashSet<String> = HashSet::new();
         for event_id in events{
             //calculate enabled model activities for this event
@@ -110,11 +111,9 @@ pub fn get_enabled_model_activities_(
                 id_to_event,
             ));
         }
+         */
         
-        /*
-         
-        
-
+        //multithreaded
         let result: HashSet<String> = events
             .par_iter()
             .map(|event_id| {
@@ -135,7 +134,7 @@ pub fn get_enabled_model_activities_(
                 },
             );
             
-         */
+         
             
          
         

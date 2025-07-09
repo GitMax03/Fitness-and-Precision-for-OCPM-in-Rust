@@ -5,11 +5,13 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use process_mining::ocel::ocel_struct::{OCELEvent};
 use rustworkx_core::traversal::ancestors;
 use counter::Counter;
+use multiset::HashMultiSet;
 use petgraph::graph::{DiGraph, NodeIndex};
 //use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::NodeRef;
 use process_mining::OCEL;
-use crate::utils::*;
+
+
 /*
 
 - Determine the enabled log activities
@@ -342,18 +344,19 @@ pub fn _get_contexts_and_bindings(
         HashMap<String, Vec<(String, HashMap<String,HashSet<String>>)>>) {
     #[cfg(feature = "progress")]
     println!("constructing contexts and bindings...");
-
+    
     let mut contexts: HashMap<String, HashMap<String, Counter<Vec<String>>>> = HashMap::new(); //event_id, HashMap [object_type, Counter( activities)]
     let mut bindings: HashMap<String, Vec<(String, HashMap<String,HashSet<String>>)>> = HashMap::new(); //map of binding sequences: event_id, Vec< activity: object_types: objects>
 
     let presets: HashMap<String, Vec<OCELEvent>> = comp_presets.clone().unwrap_or_else(|| get_event_presets(ocel, id_to_event)); //calculate presets if not alaready given
 
-    //object id to object type
+    //object id to object type TODO get as parameter
     let objects_to_objecttypes: HashMap<String, String> = ocel.objects.iter()
         .map(|o| (o.id.clone(), o.object_type.clone()))
         .collect();
 
     for (event_id, mut preset) in presets {
+
         let mut context: HashMap<String, Counter<Vec<String>>> = HashMap::new();
         let mut binding_sequence: Vec<(String, HashMap<String, HashSet<String>>)> = Vec::new(); //activity, HashMap [obejct_type, Vec<Objects with this type>]
 
@@ -402,11 +405,13 @@ pub fn _get_contexts_and_bindings(
             }
             
             for object in objects.unwrap() {
+                //TODO: maybe more efficient if we calc the prefix for all objects at once
                 //prefix all activities that are associated with this object
-                let prefix: Vec<String> = preset.iter()
+                let mut prefix: Vec<String> = preset.iter()
                     .filter(|e| e.relationships.iter().any(|rel| rel.object_id == *object))
                     .map(|e| e.event_type.clone())
                     .collect();
+                prefix.sort(); //sort prefix to ensure consistent order TODO: is multiset + hasher more efficient?
               
                 context.entry(object_type.clone())
                     .or_insert_with(Counter::new)
@@ -419,7 +424,7 @@ pub fn _get_contexts_and_bindings(
         //add binding_sequence to bindings
         bindings.insert(event_id.clone(), binding_sequence);
     }
-    println!("[DEBUG] contexts: {:#?}", contexts);
+    //println!("[DEBUG] contexts: {:#?}", contexts);
     //TODO: some inconsistencies with order of activities in context
     (contexts, bindings)
 }
