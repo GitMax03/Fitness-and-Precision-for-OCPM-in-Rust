@@ -12,7 +12,6 @@ use process_mining::ocel::ocel_struct::OCELEvent;
 use ron::ser::PrettyConfig;
 use serde::{Serialize, Deserialize};
 use crate::structs_for_ocpm::OCPN;
-use crate::test::{test_enabled_model_act, test_ocpn};
 use crate::utils::{is_superset, print_contexts};
 
 mod enabled_log_act;
@@ -22,7 +21,7 @@ mod test;
 mod utils;
 mod enabled_model_act;
 
-const NUMBER_OF_ITERATIONS: u32 = 100_000;
+const NUMBER_OF_ITERATIONS: u32 = 2;
 const VERSION_NAME: &str = "v2_multi-threaded +";
 const LOG_MODEL: &str = "small running example";
 /*
@@ -38,11 +37,13 @@ average: 0.001576
 
 fn main() {
 
+    //let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
+    //ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
     run();
     //test::test_ocpn();
     //test_running_example();
     
-    
+
     //test::test_enabled_model_act();
    
     //test::test_enabled_log_activities();
@@ -54,17 +55,43 @@ fn main() {
      
 }
 
-fn run(){
-    //let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
-    //let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
+fn get_ocel_ocpn() -> (OCEL, OCPN) {
+    
+    match 1 {
+        1 => {
+            // Load OCEL and OCPN from files or create them
+            let ocel = test::get_test_ocel();
+            let ocpn = test::get_test_ocpn_small();
+            (ocel, ocpn)
+        },
+        2 => {
+            // Load OCEL and OCPN from files or create them
+            let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
+            let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
+            (ocel, ocpn)
+        },
+        3 => {
+            let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
+            let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
+            (ocel, ocpn)
+        },
+        _ => {
+            // Load OCEL and OCPN from files or create them
+            let ocel = test::get_test_ocel();
+            let ocpn = test::get_test_ocpn_small();
+            (ocel, ocpn)
+        },
+    }
+}
 
-    let ocel = test::get_test_ocel();
-    let ocpn = test::get_test_ocpn_small();
+fn run(){
+    let (ocel, ocpn) = get_ocel_ocpn();
     
     let (fitness, precision) = evaluator::apply(ocel, ocpn.clone());
-
+    println!("\n-----------------------------------------");
     println!("fitness: {}", fitness);
     println!("precision: {}", precision);
+    println!("-----------------------------------------\n");
     
 }
 
@@ -77,11 +104,8 @@ fn test_running_example(){
     let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
 
     //test
-    println!("test enabled model activities for event e5");
+    print!("#################### test running example ####################\n");
 
-    //assert_eq!(enabled_model_activities.len(), 2);
-    //assert_eq!(enabled_model_activities,
-        //["Lift off".to_string(), "Pick up @ dest".to_string()].iter().cloned().collect::<HashSet<String>>());
 
     let presets = enabled_log_act::get_event_presets(&ocel, &id_to_event);
     println!(".");
@@ -89,26 +113,33 @@ fn test_running_example(){
     let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
     let all_object_types: HashSet<String> = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
     
-    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &None, &all_object_types);
+    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &None, &all_object_types, &ocpn.object_to_type);
 
     //let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel,&presets);
     println!(".");
     //print_contexts(&contexts);
     
-    let enabled_log_activities = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
+    let (enabled_log_activities, context_map) = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
     println!(".");
-    //let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &ocel, &presets, &bindings, &HashMap::new());
+    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map, &all_object_types, &id_to_event);
     println!(".");
+    /*
+    save_to_ron(&presets.clone(), "src/test/Expected results (running example)/presets.ron").unwrap();
+    save_to_ron(&bindings.clone(), "src/test/Expected results (running example)/bindings.ron").unwrap();
+    save_to_ron(&contexts.clone(), "src/test/Expected results (running example)/contexts.ron").unwrap();
+    save_to_ron(&context_map.clone(), "src/test/Expected results (running example)/context_map.ron").unwrap();
+    save_to_ron(&enabled_log_activities.clone(), "src/test/Expected results (running example)/enabled_log_activities.ron").unwrap();
+    save_to_ron(&enabled_model_activities.clone(), "src/test/Expected results (running example)/enabled_model_activities.ron").unwrap();
 
-    //save_to_ron(&contexts_map.clone(), "src/test/Expected results (running example)/context_map.ron").unwrap();
+     */
 
     test_presets(&presets);
-    //test_bidnings(&bindings);
+    test_bindings(&bindings);
     test_contexts(&contexts);
-    //test_context_map(&contexts_map);
+    test_context_map(&context_map);
 
-    //test_enabled_log_activities(&enabled_log_activities, ocpn.clone());
-    //test_enabled_model_activities(&enabled_model_activities, ocpn.clone());
+    test_enabled_log_activities(&enabled_log_activities, ocpn.clone());
+    test_enabled_model_activities(&enabled_model_activities, ocpn.clone());
 
     let (fitness, precision) = evaluator::apply(ocel, ocpn.clone());
 
@@ -145,12 +176,14 @@ pub fn load_from_ron<T: for<'de> Deserialize<'de>>(path: &str) -> std::io::Resul
 
 
 
-fn test_context_map(context_map: &HashMap<u64, (HashSet<String>, HashSet<String>)>) {
+pub fn test_context_map(context_map: &HashMap<u64, HashSet<String>>) {
     println!("#################### test context_map ####################");
 
-    let expected: HashMap<u64, (HashSet<String>, HashSet<String>)> =
+    // Erwartete Map: gleiche Struktur wie `context_map`
+    let expected: HashMap<u64, HashSet<String>> =
         load_from_ron("src/test/Expected results (running example)/context_map.ron").unwrap();
 
+    // Größe prüfen
     assert_eq!(
         context_map.len(),
         expected.len(),
@@ -159,29 +192,24 @@ fn test_context_map(context_map: &HashMap<u64, (HashSet<String>, HashSet<String>
         context_map.len()
     );
 
-    for (key, (actual_set1, actual_set2)) in context_map {
+    // Inhalte vergleichen
+    for (key, actual_set) in context_map {
         assert!(
             expected.contains_key(key),
             "Key '{}' not found in expected context_map",
             key
         );
 
-        let (expected_set1, expected_set2) = &expected[key];
+        let expected_set = &expected[key];
 
         assert_eq!(
-            actual_set1, expected_set1,
-            "First set for key '{}' differs (expected: {:?}, actual: {:?})",
-            key, expected_set1, actual_set1
-        );
-
-        assert_eq!(
-            actual_set2, expected_set2,
-            "Second set for key '{}' differs (expected: {:?}, actual: {:?})",
-            key, expected_set2, actual_set2
+            actual_set, expected_set,
+            "Set for key '{}' differs (expected: {:?}, actual: {:?})",
+            key, expected_set, actual_set
         );
     }
 
-    println!("   -> context_map is correct!\n\n\n");
+    println!("   -> context_map is correct!\n");
 }
 fn test_enabled_log_activities(enabled_activities: &HashMap<String, HashSet<String>>, ocpn: OCPN) {
     test_enabled_activities(enabled_activities, true, ocpn);
@@ -366,16 +394,14 @@ fn test_contexts(contexts: &HashMap<String, HashMap<String, Counter<Vec<String>>
     println!("   -> Contexts are correct!\n\n\n");
 }
 
-fn test_bidnings(bindings: &HashMap<(String, String), HashMap<String, Vec<String>>>){
-
-    //test
+pub fn test_bindings(
+    bindings: &HashMap<String, Vec<(String, HashMap<String, HashSet<String>>)>>
+) {
     println!("#################### test bindings ####################");
-
     //laod expected bindings of running example
-    let expected: HashMap<(String, String), HashMap<String, Vec<String>>> = load_from_ron("src/test/Expected results (running example)/bindings.ron").unwrap();
+    let expected: HashMap<String, Vec<(String, HashMap<String, HashSet<String>>)>> =
+        load_from_ron("src/test/Expected results (running example)/bindings.ron").unwrap();
 
-
-    // compare the actual bindings with the expected ones
 
     assert_eq!(
         bindings.len(),
@@ -385,44 +411,64 @@ fn test_bidnings(bindings: &HashMap<(String, String), HashMap<String, Vec<String
         bindings.len()
     );
 
-    //compare each entry
-    for (key, actual_inner) in bindings {
-        assert!(
-            expected.contains_key(key),
-            "Key {:?} not found",
-            key
-        );
+    for (key, actual_vec) in bindings {
+        let Some(expected_vec) = expected.get(key) else {
+            panic!("Key {:?} not found in expected", key);
+        };
 
-        let expected_inner = &expected[key];
-
-        // Vergleich der inneren HashMap
         assert_eq!(
-            actual_inner.len(),
-            expected_inner.len(),
-            "inner map fpr {:?} has wrong length",
+            actual_vec.len(),
+            expected_vec.len(),
+            "Length mismatch in inner vec for key {:?}",
             key
         );
 
-        for (inner_key, actual_vec) in actual_inner {
-            assert!(
-                expected_inner.contains_key(inner_key),
-                "Innerer Key '{}' for {:?} not found",
-                inner_key,
-                key
-            );
 
-            // compare each vec
-            let actual_set: HashSet<_> = actual_vec.iter().collect();
-            let expected_set: HashSet<_> = expected_inner[inner_key].iter().collect();
-            assert_eq!(
-                actual_set, expected_set,
-                "values for {:?}->{} are false (expected: {:?}, actual: {:?})",
-                key, inner_key, expected_inner[inner_key], actual_vec
+        for (actual_prefix, actual_map) in actual_vec {
+            let mut found_match = false;
+
+            for (expected_prefix, expected_map) in expected_vec {
+                if actual_prefix != expected_prefix {
+                    continue;
+                }
+
+                // Vergleiche die HashMaps (unabhängig von Reihenfolge in HashSet)
+                if actual_map.len() != expected_map.len() {
+                    continue;
+                }
+
+                let mut all_match = true;
+                for (k, actual_set) in actual_map {
+                    match expected_map.get(k) {
+                        Some(expected_set) => {
+                            if actual_set != expected_set {
+                                all_match = false;
+                                break;
+                            }
+                        }
+                        None => {
+                            all_match = false;
+                            break;
+                        }
+                    }
+                }
+
+                if all_match {
+                    found_match = true;
+                    break;
+                }
+            }
+
+            assert!(
+                found_match,
+                "No matching entry found for prefix {:?} in key {:?}",
+                actual_prefix,
+                key
             );
         }
     }
-    //everything is fine
-    print!("   -> Bindings are correct!\n\n\n");
+
+    println!("   -> Bindings are correct!\n");
 }
 
 

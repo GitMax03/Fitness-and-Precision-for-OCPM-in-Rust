@@ -1,6 +1,337 @@
 {
+    "e7": [
+        (
+            id: "e5",
+            type: "Lift off",
+            time: "2023-01-01T12:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e6",
+            type: "Unload",
+            time: "2023-01-01T13:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e1",
+            type: "Fuel plane",
+            time: "2023-01-01T08:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e3",
+            type: "Check-in",
+            time: "2023-01-01T10:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e4",
+            type: "Load cargo",
+            time: "2023-01-01T11:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e2",
+            type: "Check-in",
+            time: "2023-01-01T09:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+    ],
+    "e5": [
+        (
+            id: "e2",
+            type: "Check-in",
+            time: "2023-01-01T09:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e1",
+            type: "Fuel plane",
+            time: "2023-01-01T08:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e3",
+            type: "Check-in",
+            time: "2023-01-01T10:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e4",
+            type: "Load cargo",
+            time: "2023-01-01T11:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+    ],
     "e11": [],
-    "e17": [
+    "e9": [
+        (
+            id: "e2",
+            type: "Check-in",
+            time: "2023-01-01T09:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e1",
+            type: "Fuel plane",
+            time: "2023-01-01T08:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e4",
+            type: "Load cargo",
+            time: "2023-01-01T11:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e5",
+            type: "Lift off",
+            time: "2023-01-01T12:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e6",
+            type: "Unload",
+            time: "2023-01-01T13:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e3",
+            type: "Check-in",
+            time: "2023-01-01T10:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+    ],
+    "e2": [],
+    "e18": [
+        (
+            id: "e14",
+            type: "Lift off",
+            time: "2023-01-01T21:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p2",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e13",
+            type: "Load cargo",
+            time: "2023-01-01T20:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p2",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b3",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b4",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
         (
             id: "e15",
             type: "Unload",
@@ -22,25 +353,43 @@
             ],
         ),
         (
-            id: "e13",
-            type: "Load cargo",
-            time: "2023-01-01T20:00:00+01:00",
+            id: "e11",
+            type: "Check-in",
+            time: "2023-01-01T18:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b3",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e10",
+            type: "Fuel plane",
+            time: "2023-01-01T17:00:00+01:00",
             attributes: [],
             relationships: [
                 (
                     objectId: "p2",
                     qualifier: "plane",
                 ),
-                (
-                    objectId: "b3",
-                    qualifier: "baggage",
-                ),
+            ],
+        ),
+        (
+            id: "e12",
+            type: "Check-in",
+            time: "2023-01-01T19:00:00+01:00",
+            attributes: [],
+            relationships: [
                 (
                     objectId: "b4",
                     qualifier: "baggage",
                 ),
             ],
         ),
+    ],
+    "e16": [
         (
             id: "e11",
             type: "Check-in",
@@ -71,34 +420,6 @@
             ],
         ),
         (
-            id: "e12",
-            type: "Check-in",
-            time: "2023-01-01T19:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "b4",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e10",
-            type: "Fuel plane",
-            time: "2023-01-01T17:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p2",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-    ],
-    "e1": [],
-    "e18": [
-
-        (
             id: "e13",
             type: "Load cargo",
             time: "2023-01-01T20:00:00+01:00",
@@ -131,257 +452,9 @@
             ],
         ),
         (
-                    id: "e15",
-                    type: "Unload",
-                    time: "2023-01-01T22:00:00+01:00",
-                    attributes: [],
-                    relationships: [
-                        (
-                            objectId: "p2",
-                            qualifier: "plane",
-                        ),
-                        (
-                            objectId: "b3",
-                            qualifier: "baggage",
-                        ),
-                        (
-                            objectId: "b4",
-                            qualifier: "baggage",
-                        ),
-                    ],
-                ),
-        (
-            id: "e14",
-            type: "Lift off",
-            time: "2023-01-01T21:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p2",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-        (
-            id: "e11",
-            type: "Check-in",
-            time: "2023-01-01T18:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "b3",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e10",
-            type: "Fuel plane",
-            time: "2023-01-01T17:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p2",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-    ],
-    "e5": [
-        (
-            id: "e4",
-            type: "Load cargo",
-            time: "2023-01-01T11:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e1",
-            type: "Fuel plane",
-            time: "2023-01-01T08:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-        (
-            id: "e3",
-            type: "Check-in",
-            time: "2023-01-01T10:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e2",
-            type: "Check-in",
-            time: "2023-01-01T09:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-    ],
-    "e3": [],
-    "e7": [
-        (
-            id: "e6",
+            id: "e15",
             type: "Unload",
-            time: "2023-01-01T13:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e4",
-            type: "Load cargo",
-            time: "2023-01-01T11:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e2",
-            type: "Check-in",
-            time: "2023-01-01T09:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-
-        (
-            id: "e3",
-            type: "Check-in",
-            time: "2023-01-01T10:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e1",
-            type: "Fuel plane",
-            time: "2023-01-01T08:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-        (
-                    id: "e5",
-                    type: "Lift off",
-                    time: "2023-01-01T12:00:00+01:00",
-                    attributes: [
-                        (
-                            name: "",
-                            value: false,
-                        ),
-                    ],
-                    relationships: [
-                        (
-                            objectId: "p1",
-                            qualifier: "plane",
-                        ),
-                    ],
-                ),
-    ],
-    "e14": [
-        (
-            id: "e13",
-            type: "Load cargo",
-            time: "2023-01-01T20:00:00+01:00",
+            time: "2023-01-01T22:00:00+01:00",
             attributes: [],
             relationships: [
                 (
@@ -410,301 +483,25 @@
                 ),
             ],
         ),
-        (
-            id: "e12",
-            type: "Check-in",
-            time: "2023-01-01T19:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "b4",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e11",
-            type: "Check-in",
-            time: "2023-01-01T18:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "b3",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
     ],
-
-    "e9": [
-        (
-            id: "e6",
-            type: "Unload",
-            time: "2023-01-01T13:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e5",
-            type: "Lift off",
-            time: "2023-01-01T12:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-        (
-            id: "e4",
-            type: "Load cargo",
-            time: "2023-01-01T11:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e1",
-            type: "Fuel plane",
-            time: "2023-01-01T08:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-        (
-            id: "e3",
-            type: "Check-in",
-            time: "2023-01-01T10:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e2",
-            type: "Check-in",
-            time: "2023-01-01T09:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-    ],
-    "e8": [
-        (
-            id: "e6",
-            type: "Unload",
-            time: "2023-01-01T13:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e4",
-            type: "Load cargo",
-            time: "2023-01-01T11:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e3",
-            type: "Check-in",
-            time: "2023-01-01T10:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e5",
-            type: "Lift off",
-            time: "2023-01-01T12:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-        (
-            id: "e2",
-            type: "Check-in",
-            time: "2023-01-01T09:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e1",
-            type: "Fuel plane",
-            time: "2023-01-01T08:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-    ],
-    "e13": [
-            (
-                id: "e12",
-                type: "Check-in",
-                time: "2023-01-01T19:00:00+01:00",
-                attributes: [],
-                relationships: [
-                    (
-                        objectId: "b4",
-                        qualifier: "baggage",
-                    ),
-                ],
-            ),
-            (
-                id: "e11",
-                type: "Check-in",
-                time: "2023-01-01T18:00:00+01:00",
-                attributes: [],
-                relationships: [
-                    (
-                        objectId: "b3",
-                        qualifier: "baggage",
-                    ),
-                ],
-            ),
-            (
-                id: "e10",
-                type: "Fuel plane",
-                time: "2023-01-01T17:00:00+01:00",
-                attributes: [],
-                relationships: [
-                    (
-                        objectId: "p2",
-                        qualifier: "plane",
-                    ),
-                ],
-            ),
-        ],
     "e15": [
         (
-            id: "e14",
-            type: "Lift off",
-            time: "2023-01-01T21:00:00+01:00",
-            attributes: [
+            id: "e11",
+            type: "Check-in",
+            time: "2023-01-01T18:00:00+01:00",
+            attributes: [],
+            relationships: [
                 (
-                    name: "",
-                    value: false,
+                    objectId: "b3",
+                    qualifier: "baggage",
                 ),
             ],
+        ),
+        (
+            id: "e10",
+            type: "Fuel plane",
+            time: "2023-01-01T17:00:00+01:00",
+            attributes: [],
             relationships: [
                 (
                     objectId: "p2",
@@ -733,6 +530,23 @@
             ],
         ),
         (
+            id: "e14",
+            type: "Lift off",
+            time: "2023-01-01T21:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p2",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
             id: "e12",
             type: "Check-in",
             time: "2023-01-01T19:00:00+01:00",
@@ -744,85 +558,7 @@
                 ),
             ],
         ),
-        (
-            id: "e11",
-            type: "Check-in",
-            time: "2023-01-01T18:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "b3",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e10",
-            type: "Fuel plane",
-            time: "2023-01-01T17:00:00+01:00",
-            attributes: [],
-            relationships: [
-                (
-                    objectId: "p2",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
     ],
-    "e4": [
-        (
-            id: "e3",
-            type: "Check-in",
-            time: "2023-01-01T10:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b2",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e2",
-            type: "Check-in",
-            time: "2023-01-01T09:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "b1",
-                    qualifier: "baggage",
-                ),
-            ],
-        ),
-        (
-            id: "e1",
-            type: "Fuel plane",
-            time: "2023-01-01T08:00:00+01:00",
-            attributes: [
-                (
-                    name: "",
-                    value: false,
-                ),
-            ],
-            relationships: [
-                (
-                    objectId: "p1",
-                    qualifier: "plane",
-                ),
-            ],
-        ),
-    ],
-    "e12": [],
     "e6": [
         (
             id: "e5",
@@ -842,6 +578,23 @@
             ],
         ),
         (
+            id: "e2",
+            type: "Check-in",
+            time: "2023-01-01T09:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
             id: "e4",
             type: "Load cargo",
             time: "2023-01-01T11:00:00+01:00",
@@ -862,6 +615,23 @@
             ],
         ),
         (
+            id: "e1",
+            type: "Fuel plane",
+            time: "2023-01-01T08:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
             id: "e3",
             type: "Check-in",
             time: "2023-01-01T10:00:00+01:00",
@@ -872,6 +642,64 @@
                 ),
             ],
             relationships: [
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+    ],
+    "e3": [],
+    "e12": [],
+    "e8": [
+        (
+            id: "e1",
+            type: "Fuel plane",
+            time: "2023-01-01T08:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e5",
+            type: "Lift off",
+            time: "2023-01-01T12:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e6",
+            type: "Unload",
+            time: "2023-01-01T13:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
                 (
                     objectId: "b2",
                     qualifier: "baggage",
@@ -896,9 +724,9 @@
             ],
         ),
         (
-            id: "e1",
-            type: "Fuel plane",
-            time: "2023-01-01T08:00:00+01:00",
+            id: "e3",
+            type: "Check-in",
+            time: "2023-01-01T10:00:00+01:00",
             attributes: [
                 (
                     name: "",
@@ -907,19 +735,75 @@
             ],
             relationships: [
                 (
+                    objectId: "b2",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e4",
+            type: "Load cargo",
+            time: "2023-01-01T11:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
                     objectId: "p1",
                     qualifier: "plane",
+                ),
+                (
+                    objectId: "b1",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b2",
+                    qualifier: "baggage",
                 ),
             ],
         ),
     ],
-    "e2": [],
-    "e10": [],
-    "e16": [
+    "e13": [
         (
-            id: "e15",
-            type: "Unload",
-            time: "2023-01-01T22:00:00+01:00",
+            id: "e10",
+            type: "Fuel plane",
+            time: "2023-01-01T17:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p2",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e12",
+            type: "Check-in",
+            time: "2023-01-01T19:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b4",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e11",
+            type: "Check-in",
+            time: "2023-01-01T18:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b3",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+    ],
+    "e17": [
+        (
+            id: "e13",
+            type: "Load cargo",
+            time: "2023-01-01T20:00:00+01:00",
             attributes: [],
             relationships: [
                 (
@@ -950,6 +834,90 @@
                 (
                     objectId: "p2",
                     qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e15",
+            type: "Unload",
+            time: "2023-01-01T22:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p2",
+                    qualifier: "plane",
+                ),
+                (
+                    objectId: "b3",
+                    qualifier: "baggage",
+                ),
+                (
+                    objectId: "b4",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e11",
+            type: "Check-in",
+            time: "2023-01-01T18:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b3",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e10",
+            type: "Fuel plane",
+            time: "2023-01-01T17:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "p2",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e12",
+            type: "Check-in",
+            time: "2023-01-01T19:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b4",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+    ],
+    "e1": [],
+    "e10": [],
+    "e14": [
+        (
+            id: "e12",
+            type: "Check-in",
+            time: "2023-01-01T19:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b4",
+                    qualifier: "baggage",
+                ),
+            ],
+        ),
+        (
+            id: "e11",
+            type: "Check-in",
+            time: "2023-01-01T18:00:00+01:00",
+            attributes: [],
+            relationships: [
+                (
+                    objectId: "b3",
+                    qualifier: "baggage",
                 ),
             ],
         ),
@@ -985,26 +953,55 @@
                 ),
             ],
         ),
+    ],
+    "e4": [
         (
-            id: "e12",
+            id: "e2",
             type: "Check-in",
-            time: "2023-01-01T19:00:00+01:00",
-            attributes: [],
+            time: "2023-01-01T09:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
             relationships: [
                 (
-                    objectId: "b4",
+                    objectId: "b1",
                     qualifier: "baggage",
                 ),
             ],
         ),
         (
-            id: "e11",
-            type: "Check-in",
-            time: "2023-01-01T18:00:00+01:00",
-            attributes: [],
+            id: "e1",
+            type: "Fuel plane",
+            time: "2023-01-01T08:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
             relationships: [
                 (
-                    objectId: "b3",
+                    objectId: "p1",
+                    qualifier: "plane",
+                ),
+            ],
+        ),
+        (
+            id: "e3",
+            type: "Check-in",
+            time: "2023-01-01T10:00:00+01:00",
+            attributes: [
+                (
+                    name: "",
+                    value: false,
+                ),
+            ],
+            relationships: [
+                (
+                    objectId: "b2",
                     qualifier: "baggage",
                 ),
             ],

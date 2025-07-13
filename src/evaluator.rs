@@ -18,7 +18,7 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
         starting_times.push(Instant::now());
     }
 
-
+    println!("getting event ids, object types and id to event map ...");
     let events_ids: Vec<String> = ocel.events.iter().map(|event| event.id.clone()).collect();
     let all_object_types: HashSet<String> = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
     let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
@@ -34,7 +34,7 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
         }
         starting_times.push(Instant::now());
     }
-
+    println!("calculating presets ...");
     let presets = enabled_log_act::get_event_presets(&ocel, &id_to_event); //TODO inefficient is calculated twice
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
@@ -42,12 +42,12 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
         }
         starting_times.push(Instant::now());
     }
-    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types);
+    println!("calculating contexts and bindings ...");
+    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types, &ocpn.object_to_type);
 //TODO TODO context empty????????????? HILFE
-    //let (contexts, bindings) = enabled_log_act::get_contexts_and_bindings(&ocel, &presets);
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types);
+            enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types, &ocpn.object_to_type);
         }
         starting_times.push(Instant::now());
     }
@@ -55,7 +55,7 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
     //let mut contexts_: Vec<_> = contexts.iter().collect();
     //contexts_.sort_by_key(|(k, _)| k.parse::<u32>().unwrap_or(0));
     
-    
+    println!("calculating enabled log activities ...");
     let (enabled_log_activities, context_map) = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
@@ -63,7 +63,7 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
         }
         starting_times.push(Instant::now());
     }
-    
+    println!("calculating enabled model activities ...");
     let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event);
     //let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &ocel, &presets, &bindings, &contexts_map);
     #[cfg(feature = "stats")]{
@@ -74,12 +74,9 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
     }
 
     
+    println!("calculating fitness and precision ...");
     
-    
-    let mut fitness: f64 = 0.0;
-    let mut precision: f64 = 0.0;
-    
-    (fitness, precision) = calculate_fitness_and_precision(events_ids.clone(), &enabled_log_activities, &enabled_model_activities);
+    let (fitness, precision) = calculate_fitness_and_precision(events_ids.clone(), &enabled_log_activities, &enabled_model_activities);
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
             calculate_fitness_and_precision(events_ids.clone(), &enabled_log_activities, &enabled_model_activities);
@@ -109,7 +106,7 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
 
     let mut skiped_events = 0;
     
-
+    /*
     for event_id in &events_ids {
 
         let numerator = enabled_log_activities.get(event_id).unwrap()
@@ -117,6 +114,10 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
 
         let fit_denominator = enabled_log_activities.get(event_id).unwrap().len() as f64;
         let prec_denominator = enabled_model_activities.get(event_id).unwrap().len() as f64;
+        
+        if fit_denominator == 0.0 || prec_denominator == 0.0{
+            skiped_events += 0;
+        }
 
         if prec_denominator == 0.0 {
             skiped_events += 1;
@@ -145,6 +146,44 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
     precision = precision / (events_ids.len() - skiped_events ) as f64;
     
     (fitness, precision)
+    
+     */
+    
+    
+    
+    //-----
+    let mut precisions: Vec<f64> = Vec::new();
+    let mut fitnesses: Vec<f64> = Vec::new();
+    let mut skipped_events: usize = 0;
+
+    for event_id in &events_ids {
+        let en_log_act = enabled_log_activities.get(event_id).unwrap();
+        let en_model_act = enabled_model_activities.get(event_id).unwrap();
+        
+        if en_model_act.is_empty() || en_model_act.intersection(en_log_act).count() == 0 {
+            skipped_events += 1;
+            fitnesses.push(0.0);
+            continue; // Skip this event if either set is empty
+        }
+        
+        precisions.push(
+            en_log_act.intersection(en_model_act).count() as f64 / en_model_act.len() as f64
+        );
+        fitnesses.push(
+            en_log_act.intersection(en_model_act).count() as f64 / en_log_act.len() as f64
+        );
+    }
+    
+    if fitnesses.len() == 0{
+        println!("fitnesses is empty, returning (0.0, 0.0)");
+        return (0.0,0.0);
+    }
+    if precisions.len() == 0{
+        println!("precisions is empty");
+        return (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, 0.0);
+    }
+    (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, precisions.iter().sum::<f64>() / precisions.len() as f64)
+    
 }
 
 

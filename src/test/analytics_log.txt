@@ -1,3 +1,42 @@
+### Run v2_multi-threaded + time: 2025-07-09_15-36-50 log/model: small running example
+
+
+-------------Task Times-----------
+get enabled model activities                       : 0.000743489 seconds
+get context and bindings                           : 0.000331206 seconds
+get presets                                        : 0.000129192 seconds
+get enabled log activities                         : 0.000090082 seconds
+calculate fitness and precision                    : 0.000020199 seconds
+get event ids                                      : 0.000010261 seconds
+
+-------------Percentages-----------
+get enabled model activities                       : 56.18709 %
+get context and bindings                           : 25.029963 %
+get presets                                        : 9.763323 %
+get enabled log activities                         : 6.807694 %
+calculate fitness and precision                    : 1.5264827 %
+get event ids                                      : 0.77544624 %
+
+-------------Total Time-----------
+132.447840959 Seconds With 100000 iterations
+
+-------------Average Time-----------
+Average time: 0.00132447840959 Seconds
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
 ### Run v2 time: 2025-07-08_21-58-52 log/model: small running example
 
 

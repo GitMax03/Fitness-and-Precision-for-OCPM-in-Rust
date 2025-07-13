@@ -16,7 +16,7 @@ use petgraph::dot::{Dot, Config};
 
 
 use crate::{enabled_log_act, enabled_model_act};
-use crate::enabled_log_act::{construct_event_object_graph, get_contexts_and_bindings, get_enabled_log_activities, get_event_presets};
+use crate::enabled_log_act::{construct_event_object_graph, _get_contexts_and_bindings, get_enabled_log_activities, get_event_presets};
 use crate::structs_for_ocpm::*;
 
 
@@ -25,108 +25,25 @@ pub fn get_test_ocel() -> pm::OCEL {
     get_test_ocel_small()
 }
 
-pub fn test_enabled_model_act() {
-    let ocel = get_test_ocel_small();
-    let ocpn = get_test_ocpn_small();
-    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
-        .map(|e| (e.id.clone(), e.clone()))
-        .collect();
-    //get contexts and bindings
-    let (contexts, bindings) = get_contexts_and_bindings(&ocel, &get_event_presets(&ocel, &id_to_event));
-    
-    let event_presets = get_event_presets(&ocel, &id_to_event);
-    
-    //get enabled model activities
-    //let enabled_model_activities = enabled_model_act::get_ebabled_model_activities_for_event(&"e1".to_string(), event_presets.get(&"e1".to_string()).unwrap(), &bindings, &ocpn);
-    
-    //println!("Enabled Model Activities: {:?}", enabled_model_activities);
-}
-
-
-
-pub fn test_ocpn() {
-    let ocpn = get_test_ocpn_small();
-    //visualize graph (export)
-    ocpn.export_dot_to_file("src/test/vis.dot".to_string());
-    
-    let mut marking = Marking::new();
-    marking.insert("pl2".to_string(), vec!["b1".to_string(), "b2".to_string()].iter().cloned().collect());
-    marking.insert("pl1".to_string(), vec!["p1".to_string()].iter().cloned().collect());
-    
-    let mut binding_sequence: HashMap<String, Vec<Vec<String>>> = HashMap::new();
-    binding_sequence.insert("Check-in".to_string(), vec![vec!["b1".to_string()], vec!["b2".to_string()]]);
-    
-    
-
-    assert_eq!(ocpn.remove_next_binding(&mut binding_sequence, &marking),
-               Some(("Check-in".to_string(), vec!["b2".to_string()])));
-    assert_eq!(ocpn.get_enabled_transitions_from_marking(&marking), 
-               vec!["Check-in".to_string(), "Fuel plane".to_string()]);    
-}
 
 
 
 
 
-pub fn test_binding_sequence() {
-    let ocel = get_test_ocel_small();
-    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
-        .map(|e| (e.id.clone(), e.clone()))
-        .collect();
-    
-    let mut binding_sequences: HashMap<String, HashMap<String, Vec<Vec<String>>>> = HashMap::new();
-    let mut presets = get_event_presets(&ocel, &id_to_event);
-    let (contexts, bindings) = get_contexts_and_bindings(&ocel, &presets);
-    let mut used_objs : HashMap<String, HashSet<String>> = HashMap::new();
-    for event in &ocel.events {
-        let mut preset = presets.get_mut(&event.id).unwrap();
-        preset.reverse();
-        let (binding_sequence, used_obj) = enabled_model_act::get_binding_sequence_and_used_obj(&preset, &bindings.clone());
-        binding_sequences.insert(event.id.clone(), binding_sequence);
-        used_objs.insert(event.id.clone(), used_obj);
-    }
-    //print binding sequences
-    println!("Binding Sequences:");
-    println!("{:#?}", binding_sequences);
-    
-    println!("Used Objects:{:?}", used_objs);
-    
-    for sequence in binding_sequences {
-        let event_id = sequence.0;
-        let binding_sequence = sequence.1;
-        println!("Event ID: {}", event_id);
-        for (activity, object_ids) in binding_sequence {
-            println!("  Activity: {}, Object IDs: {:?}", activity, object_ids);
-        }
-    }
-}
 
-pub fn test_enabled_log_activities() {
-    let ocel = get_test_ocel();
-    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
-        .map(|e| (e.id.clone(), e.clone()))
-        .collect();
-    
-    let (contexts, bindings) = get_contexts_and_bindings(&ocel, &get_event_presets(&ocel, &id_to_event));
-    println!("Contexts: {:?}", contexts);
-    //get enabled log activities
-    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
-        .map(|e| (e.id.clone(), e.clone()))
-        .collect();
-    let ela = get_enabled_log_activities(&contexts, &id_to_event);
-    
-    println!("Enabled Log Activities: {:?}", ela);
-    
-}
 
-pub fn test_event_presets() {
+
+
+
+
+ fn test_event_presets() {
     let ocel = get_test_ocel();
     let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter()
         .map(|e| (e.id.clone(), e.clone()))
         .collect();
     //get event presets
     let presets = get_event_presets(&ocel, &id_to_event);
-    
+
     print_presets(&presets);
 }
 pub fn test_eog() {
@@ -137,7 +54,7 @@ pub fn test_eog() {
     //println!("OCEL: {:?}", ocel);
 
     let (eog,_) = construct_event_object_graph(&ocel);
-    
+
     //visualize graph (export)
     let dot = Dot::with_config(&eog, &[Config::EdgeNoLabel]);
     println!("{:?}", dot);
@@ -147,20 +64,20 @@ pub fn test_eog() {
     write!(file, "{:?}", dot).expect("error");
 
     println!("graph saved in {:?}; run with: dot -Tpng vis.dot -o vis.png", file);
-    
-    
+
+
 }
 
 
 
 
 pub fn print_presets(presets: &HashMap<String, Vec<OCELEvent>>) {
-    
+
     println!("Presets:");
-    
-    
-    
-    
+
+
+
+
     for preset in presets {
         let mut res_str = format!("{}: ", preset.0);
         res_str.push_str(&preset.1.iter()
@@ -185,8 +102,8 @@ pub fn get_test_ocel_sql() -> pm::OCEL{
 
 pub fn get_test_ocpn_small() -> OCPN {
     let mut objects_to_types: HashMap<String, String> = HashMap::new();
-    
-    
+
+
     objects_to_types.extend(vec![
         ("p1".to_string(), "plane".to_string()),
         ("p2".to_string(), "plane".to_string()),
@@ -197,7 +114,7 @@ pub fn get_test_ocpn_small() -> OCPN {
     ]);
 
     let mut ocpn = OCPN::new(objects_to_types);
-    
+
     ocpn.add_place(Some("pl1".to_string()), "plane".to_string(), true);
     ocpn.add_place(Some("pl2".to_string()), "baggage".to_string(), true);
     ocpn.add_place(Some("pl3".to_string()), "plane".to_string(), false);
@@ -243,10 +160,10 @@ pub fn get_test_ocpn_small() -> OCPN {
         ("pl1".to_string(), HashSet::from(["p1".to_string()])),
         ("pl2".to_string(), HashSet::from(["b1".to_string(), "b2".to_string()])),
     ]);
-    
-    
+
+
     ocpn.initial_marking = Some(marking);
-    
+
     ocpn
 }
 
@@ -386,7 +303,7 @@ pub fn get_test_ocel_small() -> pm::OCEL {
 
 
     };
-    
+
     ocel
 }
 

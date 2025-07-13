@@ -1,122 +1,396 @@
 {
-    ("e14", "Lift off"): {
-        "baggage": [],
-        "plane": [
-            "p2",
-        ],
-    },
-    ("e2", "Check-in"): {
-        "baggage": [
-            "b1",
-        ],
-        "plane": [],
-    },
-    ("e6", "Unload"): {
-        "plane": [
-            "p1",
-        ],
-        "baggage": [
-            "b1",
-            "b2",
-        ],
-    },
-    ("e9", "Clean"): {
-        "baggage": [],
-        "plane": [
-            "p1",
-        ],
-    },
-    ("e15", "Unload"): {
-        "baggage": [
-            "b3",
-            "b4",
-        ],
-        "plane": [
-            "p2",
-        ],
-    },
-    ("e10", "Fuel plane"): {
-        "plane": [
-            "p2",
-        ],
-        "baggage": [],
-    },
-    ("e17", "Pick up @ dest"): {
-        "plane": [],
-        "baggage": [
-            "b3",
-        ],
-    },
-    ("e16", "Clean"): {
-        "baggage": [],
-        "plane": [
-            "p2",
-        ],
-    },
-    ("e8", "Pick up @ dest"): {
-        "baggage": [
-            "b2",
-        ],
-        "plane": [],
-    },
-    ("e7", "Pick up @ dest"): {
-        "baggage": [
-            "b1",
-        ],
-        "plane": [],
-    },
-    ("e5", "Lift off"): {
-        "plane": [
-            "p1",
-        ],
-        "baggage": [],
-    },
-    ("e13", "Load cargo"): {
-        "plane": [
-            "p2",
-        ],
-        "baggage": [
-            "b3",
-            "b4",
-        ],
-    },
-    ("e3", "Check-in"): {
-        "plane": [],
-        "baggage": [
-            "b2",
-        ],
-    },
-    ("e11", "Check-in"): {
-        "baggage": [
-            "b3",
-        ],
-        "plane": [],
-    },
-    ("e18", "Pick up @ dest"): {
-        "plane": [],
-        "baggage": [
-            "b4",
-        ],
-    },
-    ("e12", "Check-in"): {
-        "plane": [],
-        "baggage": [
-            "b4",
-        ],
-    },
-    ("e1", "Fuel plane"): {
-        "baggage": [],
-        "plane": [
-            "p1",
-        ],
-    },
-    ("e4", "Load cargo"): {
-        "plane": [
-            "p1",
-        ],
-        "baggage": [
-            "b1",
-            "b2",
-        ],
-    },
+    "e13": [
+        ("Fuel plane", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b4",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b3",
+            ],
+        }),
+    ],
+    "e17": [
+        ("Load cargo", {
+            "plane": [
+                "p2",
+            ],
+            "baggage": [
+                "b3",
+                "b4",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b4",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b3",
+            ],
+        }),
+        ("Lift off", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Unload", {
+            "plane": [
+                "p2",
+            ],
+            "baggage": [
+                "b4",
+                "b3",
+            ],
+        }),
+    ],
+    "e15": [
+        ("Check-in", {
+            "baggage": [
+                "b4",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b3",
+            ],
+        }),
+        ("Load cargo", {
+            "plane": [
+                "p2",
+            ],
+            "baggage": [
+                "b4",
+                "b3",
+            ],
+        }),
+        ("Lift off", {
+            "plane": [
+                "p2",
+            ],
+        }),
+    ],
+    "e1": [],
+    "e3": [],
+    "e16": [
+        ("Unload", {
+            "plane": [
+                "p2",
+            ],
+            "baggage": [
+                "b3",
+                "b4",
+            ],
+        }),
+        ("Load cargo", {
+            "plane": [
+                "p2",
+            ],
+            "baggage": [
+                "b3",
+                "b4",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b4",
+            ],
+        }),
+        ("Lift off", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b3",
+            ],
+        }),
+    ],
+    "e10": [],
+    "e7": [
+        ("Lift off", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b2",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Load cargo", {
+            "baggage": [
+                "b1",
+                "b2",
+            ],
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b1",
+            ],
+        }),
+        ("Unload", {
+            "plane": [
+                "p1",
+            ],
+            "baggage": [
+                "b2",
+                "b1",
+            ],
+        }),
+    ],
+    "e5": [
+        ("Fuel plane", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Load cargo", {
+            "plane": [
+                "p1",
+            ],
+            "baggage": [
+                "b1",
+                "b2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b1",
+            ],
+        }),
+    ],
+    "e4": [
+        ("Check-in", {
+            "baggage": [
+                "b2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b1",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p1",
+            ],
+        }),
+    ],
+    "e14": [
+        ("Load cargo", {
+            "baggage": [
+                "b3",
+                "b4",
+            ],
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b4",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b3",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p2",
+            ],
+        }),
+    ],
+    "e9": [
+        ("Lift off", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Load cargo", {
+            "plane": [
+                "p1",
+            ],
+            "baggage": [
+                "b2",
+                "b1",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b1",
+            ],
+        }),
+        ("Unload", {
+            "baggage": [
+                "b1",
+                "b2",
+            ],
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b2",
+            ],
+        }),
+    ],
+    "e11": [],
+    "e6": [
+        ("Fuel plane", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Load cargo", {
+            "plane": [
+                "p1",
+            ],
+            "baggage": [
+                "b2",
+                "b1",
+            ],
+        }),
+        ("Lift off", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b1",
+            ],
+        }),
+    ],
+    "e2": [],
+    "e12": [],
+    "e18": [
+        ("Check-in", {
+            "baggage": [
+                "b4",
+            ],
+        }),
+        ("Fuel plane", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b3",
+            ],
+        }),
+        ("Load cargo", {
+            "baggage": [
+                "b3",
+                "b4",
+            ],
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Lift off", {
+            "plane": [
+                "p2",
+            ],
+        }),
+        ("Unload", {
+            "baggage": [
+                "b4",
+                "b3",
+            ],
+            "plane": [
+                "p2",
+            ],
+        }),
+    ],
+    "e8": [
+        ("Fuel plane", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Load cargo", {
+            "baggage": [
+                "b2",
+                "b1",
+            ],
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b2",
+            ],
+        }),
+        ("Lift off", {
+            "plane": [
+                "p1",
+            ],
+        }),
+        ("Unload", {
+            "plane": [
+                "p1",
+            ],
+            "baggage": [
+                "b1",
+                "b2",
+            ],
+        }),
+        ("Check-in", {
+            "baggage": [
+                "b1",
+            ],
+        }),
+    ],
 }
