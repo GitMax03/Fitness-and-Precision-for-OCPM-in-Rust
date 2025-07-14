@@ -54,7 +54,7 @@ pub fn test_eog() {
     //println!("OCEL: {:?}", ocel);
 
     let (eog,_) = construct_event_object_graph(&ocel);
-
+/*
     //visualize graph (export)
     let dot = Dot::with_config(&eog, &[Config::EdgeNoLabel]);
     println!("{:?}", dot);
@@ -64,7 +64,7 @@ pub fn test_eog() {
     write!(file, "{:?}", dot).expect("error");
 
     println!("graph saved in {:?}; run with: dot -Tpng vis.dot -o vis.png", file);
-
+*/
 
 }
 

@@ -12,8 +12,8 @@ counter = { version = "0.6.0", features = ["serde"] }
 uuid = { version = "1.16.0", features = ["v4"] }
 bimap = "0.6"
 petgraph = "0.6.5"
-serde_json = "1.0.140"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = {version = "1.0.140", features = ["preserve_order"]}
 ron = "0.8"
 indicatif = {version = "0.17.11", optional = true}
 rayon = "1.10.0"

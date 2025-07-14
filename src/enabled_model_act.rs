@@ -143,7 +143,7 @@ pub fn get_enabled_model_activities_for_event(
                 for object_id in needed_objects_.iter() {
                     initial_marking.entry(place_id.clone()).or_insert(HashSet::new()).insert(object_id.clone());
                 }
-                //TODO evt. add additional objects to initial marking
+                //TODO evt. add additional objects to initial markingxq
             }
         }
     }
@@ -208,9 +208,8 @@ pub fn get_enabled_model_activities_for_event(
     if result.is_empty(){
         println!("No enabled transitions found");
     }
-    
-     */
-    //print!(".");
+    print!(".");
+    */
     result
 }
 

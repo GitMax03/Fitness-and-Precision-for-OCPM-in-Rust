@@ -21,7 +21,7 @@ mod test;
 mod utils;
 mod enabled_model_act;
 
-const NUMBER_OF_ITERATIONS: u32 = 2;
+const NUMBER_OF_ITERATIONS: u32 = 1;
 const VERSION_NAME: &str = "v2_multi-threaded +";
 const LOG_MODEL: &str = "small running example";
 /*
@@ -56,7 +56,7 @@ fn main() {
 }
 
 fn get_ocel_ocpn() -> (OCEL, OCPN) {
-    
+
     match 1 {
         1 => {
             // Load OCEL and OCPN from files or create them

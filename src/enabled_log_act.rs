@@ -6,8 +6,8 @@ use process_mining::ocel::ocel_struct::{OCELEvent};
 use rustworkx_core::traversal::ancestors;
 use counter::Counter;
 use multiset::HashMultiSet;
-use petgraph::graph::{DiGraph, NodeIndex};
-//use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
+//use petgraph::graph::{DiGraph, NodeIndex};
+use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::NodeRef;
 use process_mining::OCEL;
 
@@ -117,7 +117,7 @@ fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &
         return presets[&event_id].clone();
     }
 
-    let predecessors: Vec<NodeIndex> = eog.neighbors_directed(*id_to_node.get(&event_id).unwrap(), petgraph::Direction::Incoming).collect();
+    let predecessors: Vec<NodeIndex> = eog.neighbors_directed(*id_to_node.get(&event_id).unwrap(), rustworkx_core::petgraph::Direction::Incoming).collect();
 
     //if event has no predecessors, return empty vector
     if predecessors.is_empty(){
@@ -143,7 +143,7 @@ fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &
 
 //TODO: not fully tested + return event ID?
 pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) -> HashMap<String, Vec<OCELEvent>> {
-    //TODO: order important?
+    //TODO: order important? => sort on time attribute????
     #[cfg(feature = "progress")]
     println!("constructing presets ...");
 
@@ -177,8 +177,10 @@ pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) 
         presets_.insert(event_id.clone(), ancestors_events);
     }
     return presets_;
+    */
+     
     
-     */
+     
     
     for event_id in ocel.events.iter().map(|e| e.id.clone()) {
 
@@ -194,7 +196,6 @@ pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) 
         calc_preset_recurv(&eog, event_id.clone(), &id_to_node, &mut presets);
 
     }
-    
     
     
     //TODO temp: convert do OCELEvent

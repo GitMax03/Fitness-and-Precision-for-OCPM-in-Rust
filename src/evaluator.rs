@@ -54,6 +54,7 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
     //debug
     //let mut contexts_: Vec<_> = contexts.iter().collect();
     //contexts_.sort_by_key(|(k, _)| k.parse::<u32>().unwrap_or(0));
+   
     
     println!("calculating enabled log activities ...");
     let (enabled_log_activities, context_map) = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
@@ -159,6 +160,10 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
     for event_id in &events_ids {
         let en_log_act = enabled_log_activities.get(event_id).unwrap();
         let en_model_act = enabled_model_activities.get(event_id).unwrap();
+        
+        if en_model_act.is_empty(){
+            println!("event id {} not found in enabled model activities!!!", event_id);
+        }
         
         if en_model_act.is_empty() || en_model_act.intersection(en_log_act).count() == 0 {
             skipped_events += 1;

@@ -184,6 +184,8 @@ pub fn import_ocel_from_jsonocel(json_str: &str) -> OCEL {
     
     let mut activitys: HashSet<String> = HashSet::new();
     let mut events: Vec<OCELEvent> = Vec::new();
+    
+  
     for (event_id, event_val) in json_value["ocel:events"].as_object().unwrap() {
         let mut event: OCELEvent;
         
@@ -207,6 +209,9 @@ pub fn import_ocel_from_jsonocel(json_str: &str) -> OCEL {
         };
         events.push(event);
     }
+    
+    
+    
     
     let mut event_types: Vec<OCELType> = Vec::new();
     for activity in activitys {
@@ -271,6 +276,7 @@ pub fn import_from_json(json_str: &str) -> OCPN {
 
     ocpn
 }
+
 
 
 
