@@ -12,6 +12,7 @@ use petgraph::dot::{Dot, Config};
 use petgraph::Graph;
 use std::fs::File;
 use std::io::Write;
+use std::ops::Index;
 use petgraph::graph::DiGraph;
 use petgraph::visit::NodeRef;
 use serde_json::json;
@@ -319,8 +320,28 @@ impl OCPN {
 
         let graph = self.export_to_petgraph().clone();
 
+        let colors: Vec<(String, String)> = vec![
+            ("ff0000".to_string(), "ff6666".to_string()),
+            ("00ff00".to_string(), "66ff66".to_string()),
+            ("0000ff".to_string(), "6666ff".to_string()),
+            ("ffff00".to_string(), "ffff66".to_string()),
+            ("ff00ff".to_string(), "ff66ff".to_string()),
+            ("00ffff".to_string(), "66ffff".to_string()),
+        ];
+        let mut all_object_types: HashMap<String, (String, String)> = HashMap::new();
+        let mut c_index = 0; //color index
+        for object_type in self.object_to_type.values() {
+            all_object_types.entry(object_type.clone())
+                .or_insert(({
+                    c_index += 1;
+                    colors[c_index].clone()
+                }
+                ));
+        }
+        
         //visualize graph (export)
         let dot = Dot::with_config(&graph, &[]);
+        
 
         //save eog to vis.dot
         let mut file = File::create(path.clone()).expect("error");

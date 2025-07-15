@@ -37,9 +37,9 @@ average: 0.001576
 
 fn main() {
 
-    //let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
-    //ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
-    run();
+    let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
+    ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
+    //run();
     //test::test_ocpn();
     //test_running_example();
     
@@ -57,7 +57,7 @@ fn main() {
 
 fn get_ocel_ocpn() -> (OCEL, OCPN) {
 
-    match 1 {
+    match 3 {
         1 => {
             // Load OCEL and OCPN from files or create them
             let ocel = test::get_test_ocel();

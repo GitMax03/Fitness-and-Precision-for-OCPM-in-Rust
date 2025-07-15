@@ -15,24 +15,22 @@ pub fn get_enabled_model_activities_(
     all_object_types: &HashSet<String>,
     id_to_event: &HashMap<String, OCELEvent>,
 ) -> HashMap<String, HashSet<String>> { //event_id, enabled_model_activities
-    
+
 
     let mut results: HashMap<String, HashSet<String>> = HashMap::new();
 
     //println!("Contexts map: {:?}", contexts_map);
-    
+
 
     //iterate over each different context
     for (_, events) in context_event_map{
         #[cfg(feature = "progress-percentage")]{
-            
+
             //print percentage every 5 iterations
             if results.len() % 5 == 0 {
                 println!("Enabled Model act: {}%", (results.len() as f64 / id_to_event.len() as f64 * 100.0).round());
             }
         }
-        
-        
         //enabled model activities for this context
         //if: just for debug
         if false{
@@ -55,7 +53,7 @@ pub fn get_enabled_model_activities_(
             for event_id in events {
                 results.insert(event_id.clone(), result.clone());
             }
-            
+
         }else{
             //multithreaded
             let result: HashSet<String> = events
@@ -83,8 +81,8 @@ pub fn get_enabled_model_activities_(
                 results.insert(event_id.clone(), result.clone());
             }
         }
-          
-        
+
+
     }
     
     
@@ -155,11 +153,11 @@ pub fn get_enabled_model_activities_for_event(
 
     let mut result: HashSet<String> = HashSet::new(); //result: list of activities
     let mut seen_markings: HashMap<u64, usize> = HashMap::new(); //seen amrkings: <Hash of marking, len of binding> to avoid infinite loops
-    
+
     while !state_queue.is_empty() {
-        
+
         if state_queue.len() > 70_000 { println!("ABORT!!!"); break;}
-        
+
         let current_state = state_queue.pop_front().unwrap();
 
         //if binding sequence is fully replayed in the current state: no bindinng is left in the sequence
@@ -182,7 +180,8 @@ pub fn get_enabled_model_activities_for_event(
             }
             seen_markings.insert(hashed_next_state.clone(), binding.len());
             state_queue.push_back(next_state);
-            
+
+
         }else{ //there is no enabled binding
             //check for any enabled silent transitions
             let enabled_silent_bindings = ocpn.get_enabled_silent_transitions_bindings_(&current_state);
@@ -201,15 +200,14 @@ pub fn get_enabled_model_activities_for_event(
                 }
                 seen_markings.insert(hashed_next_state.clone(), binding.len());
                 state_queue.push_back(state);
+
             }
         }
     }
-    /*
     if result.is_empty(){
         println!("No enabled transitions found");
     }
-    print!(".");
-    */
+
     result
 }
 
