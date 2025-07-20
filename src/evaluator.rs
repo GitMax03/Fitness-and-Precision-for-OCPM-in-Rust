@@ -35,7 +35,7 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
         starting_times.push(Instant::now());
     }
     println!("calculating presets ...");
-    let presets = enabled_log_act::get_event_presets(&ocel, &id_to_event); //TODO inefficient is calculated twice
+    let (presets, id_preset) = enabled_log_act::get_event_presets(&ocel, &id_to_event); //TODO inefficient is calculated twice
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
             enabled_log_act::get_event_presets(&ocel, &id_to_event);
@@ -65,11 +65,11 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
         starting_times.push(Instant::now());
     }
     println!("calculating enabled model activities ...");
-    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event);
+    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event, &id_preset);
     //let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &ocel, &presets, &bindings, &contexts_map);
     #[cfg(feature = "stats")]{
         for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event);
+            enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event, &id_preset);
         }
         starting_times.push(Instant::now());
     }
@@ -150,6 +150,17 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
     
      */
     
+    //DEBUG:
+    let mut en_log_vec: Vec<(String, &HashSet<String>)> = enabled_log_activities.iter().map(|(id, acts)| (id.clone(), acts)).collect();
+    en_log_vec.sort_by(|(a_id, _), (b_id, _)| {
+        a_id.parse::<u32>().unwrap_or(0).cmp(&b_id.parse::<u32>().unwrap_or(0))
+    });
+    let mut en_model_vec: Vec<(String, &HashSet<String>)> = enabled_model_activities.iter().map(|(id, acts)| (id.clone(), acts)).collect();
+    en_model_vec.sort_by(|(a_id, _), (b_id, _)| {
+        a_id.parse::<u32>().unwrap_or(0).cmp(&b_id.parse::<u32>().unwrap_or(0))
+    });
+    
+    
     
     
     //-----
@@ -161,11 +172,24 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
         let en_log_act = enabled_log_activities.get(event_id).unwrap();
         let en_model_act = enabled_model_activities.get(event_id).unwrap();
         
-        if en_model_act.is_empty(){
-            println!("event id {} not found in enabled model activities!!!", event_id);
-        }
+        //debug
+        /*
+        if !vec!["7498".to_string(), "7497".to_string(), "7496".to_string()].contains(event_id) { continue; }
+        println!("\n-------------------");
+        println!("en model activities for event {}: {:?}", event_id, en_model_act);
+        println!("en log activities for event {}: {:?}", event_id, en_log_act);
+        
+         */
+        
         
         if en_model_act.is_empty() || en_model_act.intersection(en_log_act).count() == 0 {
+
+            if en_model_act.is_empty(){
+                println!("LEN: event id {} not found in enabled model activities!!!", event_id);
+            }else{
+                println!("INTER: event id {} not found in enabled model activities!", event_id);
+            }
+            
             skipped_events += 1;
             fitnesses.push(0.0);
             continue; // Skip this event if either set is empty
@@ -180,11 +204,11 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
     }
     
     if fitnesses.len() == 0{
-        println!("fitnesses is empty, returning (0.0, 0.0)");
+        //println!("fitnesses is empty, returning (0.0, 0.0)");
         return (0.0,0.0);
     }
     if precisions.len() == 0{
-        println!("precisions is empty");
+        //println!("precisions is empty");
         return (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, 0.0);
     }
     (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, precisions.iter().sum::<f64>() / precisions.len() as f64)

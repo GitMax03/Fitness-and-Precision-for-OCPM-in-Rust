@@ -1,5 +1,5 @@
 {
-    "e4": {
+    "4": {
         "baggage": {
             [
                 "Check-in",
@@ -11,64 +11,7 @@
             ]: 1,
         },
     },
-    "e16": {
-        "plane": {
-            [
-                "Fuel plane",
-                "Lift off",
-                "Load cargo",
-                "Unload",
-            ]: 1,
-        },
-        "baggage": {
-            [
-                "Check-in",
-                "Load cargo",
-                "Unload",
-            ]: 2,
-        },
-    },
-    "e1": {
-        "baggage": {
-            []: 1,
-        },
-        "plane": {
-            []: 1,
-        },
-    },
-    "e7": {
-        "baggage": {
-            [
-                "Check-in",
-                "Load cargo",
-                "Unload",
-            ]: 2,
-        },
-        "plane": {
-            [
-                "Fuel plane",
-                "Lift off",
-                "Load cargo",
-                "Unload",
-            ]: 1,
-        },
-    },
-    "e15": {
-        "baggage": {
-            [
-                "Check-in",
-                "Load cargo",
-            ]: 2,
-        },
-        "plane": {
-            [
-                "Fuel plane",
-                "Lift off",
-                "Load cargo",
-            ]: 1,
-        },
-    },
-    "e17": {
+    "16": {
         "plane": {
             [
                 "Fuel plane",
@@ -85,40 +28,7 @@
             ]: 2,
         },
     },
-    "e3": {
-        "plane": {
-            []: 1,
-        },
-        "baggage": {
-            []: 1,
-        },
-    },
-    "e2": {
-        "plane": {
-            []: 1,
-        },
-        "baggage": {
-            []: 1,
-        },
-    },
-    "e18": {
-        "plane": {
-            [
-                "Fuel plane",
-                "Lift off",
-                "Load cargo",
-                "Unload",
-            ]: 1,
-        },
-        "baggage": {
-            [
-                "Check-in",
-                "Load cargo",
-                "Unload",
-            ]: 2,
-        },
-    },
-    "e11": {
+    "1": {
         "baggage": {
             []: 1,
         },
@@ -126,29 +36,7 @@
             []: 1,
         },
     },
-    "e10": {
-        "plane": {
-            []: 1,
-        },
-        "baggage": {
-            []: 1,
-        },
-    },
-    "e5": {
-        "baggage": {
-            [
-                "Check-in",
-                "Load cargo",
-            ]: 2,
-        },
-        "plane": {
-            [
-                "Fuel plane",
-                "Load cargo",
-            ]: 1,
-        },
-    },
-    "e9": {
+    "7": {
         "baggage": {
             [
                 "Check-in",
@@ -165,19 +53,102 @@
             ]: 1,
         },
     },
-    "e13": {
+    "15": {
         "baggage": {
             [
                 "Check-in",
+                "Load cargo",
             ]: 2,
         },
         "plane": {
             [
                 "Fuel plane",
+                "Lift off",
+                "Load cargo",
             ]: 1,
         },
     },
-    "e8": {
+    "17": {
+        "plane": {
+            [
+                "Fuel plane",
+                "Lift off",
+                "Load cargo",
+                "Unload",
+            ]: 1,
+        },
+        "baggage": {
+            [
+                "Check-in",
+                "Load cargo",
+                "Unload",
+            ]: 2,
+        },
+    },
+    "3": {
+        "plane": {
+            []: 1,
+        },
+        "baggage": {
+            []: 1,
+        },
+    },
+    "2": {
+        "plane": {
+            []: 1,
+        },
+        "baggage": {
+            []: 1,
+        },
+    },
+    "18": {
+        "plane": {
+            [
+                "Fuel plane",
+                "Lift off",
+                "Load cargo",
+                "Unload",
+            ]: 1,
+        },
+        "baggage": {
+            [
+                "Check-in",
+                "Load cargo",
+                "Unload",
+            ]: 2,
+        },
+    },
+    "11": {
+        "baggage": {
+            []: 1,
+        },
+        "plane": {
+            []: 1,
+        },
+    },
+    "10": {
+        "plane": {
+            []: 1,
+        },
+        "baggage": {
+            []: 1,
+        },
+    },
+    "5": {
+        "baggage": {
+            [
+                "Check-in",
+                "Load cargo",
+            ]: 2,
+        },
+        "plane": {
+            [
+                "Fuel plane",
+                "Load cargo",
+            ]: 1,
+        },
+    },
+    "9": {
         "baggage": {
             [
                 "Check-in",
@@ -194,7 +165,36 @@
             ]: 1,
         },
     },
-    "e12": {
+    "13": {
+        "baggage": {
+            [
+                "Check-in",
+            ]: 2,
+        },
+        "plane": {
+            [
+                "Fuel plane",
+            ]: 1,
+        },
+    },
+    "8": {
+        "baggage": {
+            [
+                "Check-in",
+                "Load cargo",
+                "Unload",
+            ]: 2,
+        },
+        "plane": {
+            [
+                "Fuel plane",
+                "Lift off",
+                "Load cargo",
+                "Unload",
+            ]: 1,
+        },
+    },
+    "12": {
         "baggage": {
             []: 1,
         },
@@ -202,7 +202,7 @@
             []: 1,
         },
     },
-    "e6": {
+    "6": {
         "plane": {
             [
                 "Fuel plane",
@@ -217,7 +217,7 @@
             ]: 2,
         },
     },
-    "e14": {
+    "14": {
         "plane": {
             [
                 "Fuel plane",

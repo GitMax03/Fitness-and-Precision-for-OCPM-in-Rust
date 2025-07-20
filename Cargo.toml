@@ -19,9 +19,17 @@ indicatif = {version = "0.17.11", optional = true}
 rayon = "1.10.0"
 multiset = "0.0.5"
 multiset-hash = "0.2.0"
+dashmap = "7.0.0-rc2"
 
 [features]
 progress = ["indicatif"]
 progress-percentage = []
 stats = []
 save_stats = ["stats"]
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3

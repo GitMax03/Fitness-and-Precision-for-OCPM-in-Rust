@@ -1,11 +1,14 @@
+use std::io::Write;
 extern crate process_mining as pm;
 
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use process_mining::ocel::ocel_struct::{OCELEvent};
 use rustworkx_core::traversal::ancestors;
 use counter::Counter;
 use multiset::HashMultiSet;
+use rustworkx_core::petgraph::dot::Dot;
 //use petgraph::graph::{DiGraph, NodeIndex};
 use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::NodeRef;
@@ -38,8 +41,13 @@ pub fn construct_event_object_graph(ocel: &OCEL) -> (DiGraph<String, ()>, HashMa
 
     for i in 0..ocel.events.len() {
         //print %
-        #[cfg(feature = "progress-percentage")]
-        println!("EOG: {}%", (i as f32 / ocel.events.len() as f32 * 100.0));
+        #[cfg(feature = "progress-percentage")]{
+            //print every 100 iterations
+            if i % 2000 == 0 {
+                println!("EOG: {}%", (i as f32 / ocel.events.len() as f32 * 100.0).round());
+            }
+        }
+        
         let event = &ocel.events[i];
         id_to_node.insert(event.id.clone(), eog.add_node(event.id.clone())); //add event_id as weight
 
@@ -111,8 +119,27 @@ pub fn construct_event_object_graph(ocel: &OCEL) -> (DiGraph<String, ()>, HashMa
 
 }
 
-fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &HashMap<String, NodeIndex>, presets: &mut HashMap<String, HashSet<String>>) -> HashSet<String> {
 
+
+fn insert_sorted(vec: &mut Vec<String>, new_id_: String) {
+    
+    
+    let new_id: usize = new_id_.parse().unwrap();
+
+    match vec.binary_search_by(|s| s.parse::<usize>().unwrap().cmp(&new_id)) {
+        Ok(_) => {
+            //event is already inserted
+        }
+        Err(pos) => {
+            vec.insert(pos, new_id_);
+        }
+    }
+}
+
+fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &HashMap<String, NodeIndex>, presets: &mut HashMap<String, Vec<String>>) -> Vec<String> {
+
+    
+    
     if presets.contains_key(&event_id){
         return presets[&event_id].clone();
     }
@@ -121,19 +148,24 @@ fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &
 
     //if event has no predecessors, return empty vector
     if predecessors.is_empty(){
-        presets.insert(event_id.clone(), HashSet::new());
-        HashSet::new()
+        presets.insert(event_id.clone(), Vec::new());
+        Vec::new()
     }else{
 
         //add preset of each predecessor and predecessor itself to preset
 
-        let mut preset: HashSet<String> = HashSet::new();
+        let mut preset: Vec<String> = Vec::new();
         for predecessor in predecessors {
             let predecessor_event_id = eog[predecessor].clone();
             //recursively get preset of predecessor
             let predecessor_preset = calc_preset_recurv(eog, predecessor_event_id.clone(), id_to_node, presets);
-            preset.extend(predecessor_preset);
-            preset.insert(predecessor_event_id);
+            
+            for predecessor_event_id in predecessor_preset {
+                //insert sorted to ensure order
+                insert_sorted(&mut preset, predecessor_event_id);
+            }
+            
+            insert_sorted(&mut preset, predecessor_event_id);
         }
         presets.insert(event_id.clone(), preset.clone());
         preset
@@ -142,18 +174,22 @@ fn calc_preset_recurv(eog: &DiGraph<String, ()>, event_id: String, id_to_node: &
 }
 
 //TODO: not fully tested + return event ID?
-pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) -> HashMap<String, Vec<OCELEvent>> {
-    //TODO: order important? => sort on time attribute????
+pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) -> (HashMap<String, Vec<OCELEvent>>, HashMap<String, Vec<String>>) {
+    //TODO: order important => sort on event id (id is given by order in the log)
     #[cfg(feature = "progress")]
     println!("constructing presets ...");
 
     //get preset => all events that are connected to event_id in the eog
     //=> get all predecessors of event_id
+    
+    
 
     //TODO: does function change ocel?
     let (eog, id_to_node) = construct_event_object_graph(ocel);
+    
+    
     //key: id; value: preset
-    let mut presets: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut presets: HashMap<String, Vec<String>> = HashMap::new();
     
     /*
     let mut presets_: HashMap<String, Vec<OCELEvent>> = HashMap::new();
@@ -184,8 +220,16 @@ pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) 
     
     for event_id in ocel.events.iter().map(|e| e.id.clone()) {
 
-        #[cfg(feature = "progress-percentage")]
-        println!("Presets: {}%", (presets.len() as f32 / eog.node_count() as f32 * 100.0));
+        #[cfg(feature = "progress-percentage")]{
+            //print percentage every 100 iterations
+            if presets.len() % 2000 == 0 {
+                //print percentage
+                println!("Presets: {}%", (presets.len() as f32 / eog.node_count() as f32 * 100.0).round());
+            }
+        }
+        
+        
+        
 
         //if presets already contains event_id, continue
         if presets.contains_key(&event_id) {
@@ -197,14 +241,16 @@ pub fn get_event_presets(ocel: &OCEL, id_to_event: &HashMap<String, OCELEvent>) 
 
     }
     
+    let DEBUG = presets.get("6900").unwrap_or(&vec![]).clone();
+    
     
     //TODO temp: convert do OCELEvent
     let mut event_presets: HashMap<String, Vec<OCELEvent>> = HashMap::new();
-    for (event_id, preset) in presets {
+    for (event_id, preset) in presets.iter() {
         //get all events with event_id in ocel
-        event_presets.insert(event_id, preset.iter().map(|event_id| id_to_event[event_id].clone()).collect());
+        event_presets.insert(event_id.clone(), preset.iter().map(|event_id| id_to_event[event_id].clone()).collect());
     }
-    event_presets
+    (event_presets, presets)
     
     /*
     ancestors 
@@ -235,7 +281,7 @@ pub fn _get_contexts_and_bindings(
     let mut contexts: HashMap<String, HashMap<String, Counter<Vec<String>>>> = HashMap::new(); //event_id, HashMap [object_type, Counter( activities)]
     let mut bindings: HashMap<String, Vec<(String, HashMap<String,HashSet<String>>)>> = HashMap::new(); //map of binding sequences: event_id, Vec< activity: object_types: objects>
 
-    let presets: HashMap<String, Vec<OCELEvent>> = comp_presets.clone().unwrap_or_else(|| get_event_presets(ocel, id_to_event)); //calculate presets if not alaready given
+    let presets: HashMap<String, Vec<OCELEvent>> = comp_presets.clone().unwrap_or_else(|| get_event_presets(ocel, id_to_event).0); //calculate presets if not alaready given
 
     for (event_id, preset) in presets {
 

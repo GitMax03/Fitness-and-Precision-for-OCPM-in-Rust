@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::hash::Hasher;
 use std::hash::Hash;
 extern crate process_mining as pm;
@@ -15,6 +16,7 @@ use std::io::Write;
 use std::ops::Index;
 use petgraph::graph::DiGraph;
 use petgraph::visit::NodeRef;
+use rayon::in_place_scope;
 use serde_json::json;
 
 //OCPN
@@ -321,9 +323,9 @@ impl OCPN {
         let graph = self.export_to_petgraph().clone();
 
         let colors: Vec<(String, String)> = vec![
-            ("ff0000".to_string(), "ff6666".to_string()),
+            ("ff0000".to_string(), "ff6666".to_string()), //red
             ("00ff00".to_string(), "66ff66".to_string()),
-            ("0000ff".to_string(), "6666ff".to_string()),
+            ("0000ff".to_string(), "6666ff".to_string()), //Blue
             ("ffff00".to_string(), "ffff66".to_string()),
             ("ff00ff".to_string(), "ff66ff".to_string()),
             ("00ffff".to_string(), "66ffff".to_string()),
@@ -331,17 +333,53 @@ impl OCPN {
         let mut all_object_types: HashMap<String, (String, String)> = HashMap::new();
         let mut c_index = 0; //color index
         for object_type in self.object_to_type.values() {
-            all_object_types.entry(object_type.clone())
-                .or_insert(({
-                    c_index += 1;
-                    colors[c_index].clone()
-                }
-                ));
+            if all_object_types.contains_key(object_type) { continue; }
+            all_object_types.insert(object_type.clone(), (colors[c_index % colors.len()].0.clone(), colors[c_index % colors.len()].1.clone()));
+            c_index += 1;
         }
         
-        //visualize graph (export)
-        let dot = Dot::with_config(&graph, &[]);
         
+        
+        //visualize graph (export)
+        //let dot = Dot::with_config(&graph, &[]);
+        let dot = Dot::with_attr_getters(
+            &graph,
+            &[],
+
+            // edge attributes
+            &|_graph, edge_ref| {
+                //get edge attributes
+                let mut x = String::new();
+                let edge_weight = edge_ref.weight();
+                if let label = edge_weight {
+                    if label.starts_with("offer") {
+                        x = format!("color=\"#{}\", style=filled", "0000ff");
+                    } else if label.starts_with("application") {
+                        x = format!("color=\"#{}\", style=filled", "ff0000");
+                    }
+                }
+                x
+            },
+
+            // Node attributes
+            &|_graph, node_ref| {
+                
+                let node_label = node_ref.1.clone();
+                let mut x:String = "".to_string();
+
+                if node_label.starts_with("offer") {
+                    x = format!("color = \"#{}\", style =filled", "6666ff");
+                }else if node_label.starts_with("application") {
+                    x = format!("color=\"#{}\", style=filled", "ff6666");
+                }else if node_label.contains(":") {
+                    x = format!("shape = box; style = filled; color = gray");
+                }else {
+                    x = format!(" shape = box; style = filled; color = \"#575454\"");
+                }
+                
+                x
+            },
+        );
 
         //save eog to vis.dot
         let mut file = File::create(path.clone()).expect("error");
@@ -468,6 +506,22 @@ impl OCPN {
     pub fn remove_next_binding_(&self, binding_sequence: &mut Vec<(String, HashMap<String,HashSet<String>>)>, marking: &Marking) -> Option<(String, HashMap<String, HashSet<String>>)> { //activity, [object_types: object_ids]>
 
         if binding_sequence.is_empty() { return None }
+        
+        //TODO: test:
+
+        //check if first binding is enabled in the marking
+        let enabled_transitions = self.get_enabled_transitions_from_marking(marking);
+        if enabled_transitions.is_empty() { return None }
+        for transition_id in enabled_transitions {
+            if self.transitions.get(&transition_id).unwrap().activity == binding_sequence.first().unwrap().0 {
+                //if the first binding is enabled, return it
+                return Some(binding_sequence.remove(0));
+            }
+        }
+        return None;
+        
+        
+        //----------------
 
         //Binding Sequence: <activity, [object_type: object_ids]>
         let transitions_of_binding:HashSet<String> = binding_sequence.iter().map(|(transition, _)| transition.clone()).collect();
@@ -494,7 +548,7 @@ impl OCPN {
         let mut enabled_silent_transitions: Vec<(String, HashMap<String,HashSet<String>>)> = vec![]; //result
         let mut associated_silent_transitions: Vec<(String, HashSet<String>)> = vec![]; //transition_id, object ids that are involved TODO
 
-        if marking.len() <= self.silent_transtions.len() {
+        //if marking.len() <= self.silent_transtions.len() { almost always true
             //iterate over marking => is smaller
             for (place_id, objects) in marking.iter() {
                 //check if this place has a silent transition
@@ -507,7 +561,6 @@ impl OCPN {
                     let mut temp_marking = marking.clone();
                     let mut involved_objects: HashMap<String, HashSet<String>> = HashMap::new(); //objects that are involved in this transition
                     for (input,_) in transition.unwrap().input_places.iter() {
-
                         
 
                         if !temp_marking.contains_key(input) {
@@ -529,7 +582,8 @@ impl OCPN {
                     }
                 }
             }
-
+        
+        /*
         }else{
             for (id, transition) in self.silent_transtions.iter() {
                 //check if this transition is enabled
@@ -572,6 +626,7 @@ impl OCPN {
                 }
             }
         }
+    */
 
         enabled_silent_transitions
     }
@@ -718,13 +773,16 @@ pub struct Arc {
 
 pub type Marking = HashMap<String, HashSet<String>>; //place id, [object ids, -DELETED: Object type]
 
-pub fn hash_marking(marking: &Marking) -> u64 {
+pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>) -> u64 {
+    //TODO: assumption: 2 objects with same id in the same place are not allowed => are only considered as one object is solved by HashSet?
+    /*
     let mut hasher = DefaultHasher::new();
 
     let mut sorted_places: Vec<_> = marking.iter().collect();
     sorted_places.sort_by_key(|(place, _)| *place);
 
     for (place, objects) in sorted_places {
+        
         place.hash(&mut hasher);
 
         let mut sorted_objs: Vec<_> = objects.iter().collect();
@@ -736,6 +794,44 @@ pub fn hash_marking(marking: &Marking) -> u64 {
     }
 
     hasher.finish()
+    
+     */
+
+
+    let mut hasher = DefaultHasher::new();
+
+    // Sort for consistent hashing
+    let mut sorted_places: Vec<_> = marking.iter().collect();
+    sorted_places.sort_by_key(|(place, _)| *place);
+
+    for (place, objects) in sorted_places {
+        place.hash(&mut hasher);
+
+        // count objects per type
+        let mut type_counts: BTreeMap<&String, usize> = BTreeMap::new();
+        for obj in objects {
+            if let Some(obj_type) = object_to_type.get(obj) {
+                *type_counts.entry(obj_type).or_insert(0) += 1;
+            }
+        }
+
+        
+        for (obj_type, count) in type_counts {
+            obj_type.hash(&mut hasher);
+            count.hash(&mut hasher);
+        }
+    }
+
+    hasher.finish()
 }
 
+pub fn print_marking(markings: &Vec<&Marking>) {
+    //print marking
+    for marking in markings {
+        for (place, objects) in marking.iter() {
+            println!("Place: {}, Objects: {:?}", place, objects);
+        }
+        println!("-------------------");
+    }
+}
 

@@ -1,8 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::format;
 use std::fs::{OpenOptions, read_to_string};
 use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader, Write};
+use std::iter::zip;
 use chrono::{Local, TimeZone};
 use std::process::Command;
 use std::time::Instant;
@@ -184,30 +185,43 @@ pub fn import_ocel_from_jsonocel(json_str: &str) -> OCEL {
     
     let mut activitys: HashSet<String> = HashSet::new();
     let mut events: Vec<OCELEvent> = Vec::new();
-    
-  
-    for (event_id, event_val) in json_value["ocel:events"].as_object().unwrap() {
+
+    //------
+    let events_ = json_value["ocel:events"]
+        .as_object()
+        .ok_or("'ocel:events' not found").unwrap();
+
+
+    for (index, (event_id, event_val)) in events_.iter().enumerate() {
         let mut event: OCELEvent;
-        
+
         let mut relationships: Vec<OCELRelationship> = Vec::new();
-        
+
         for object_id in event_val["ocel:omap"].as_array().unwrap() {
             relationships.append(vec![OCELRelationship{
                 qualifier: objects_to_type.get(object_id.as_str().unwrap()).unwrap().to_string(),
                 object_id: object_id.as_str().unwrap_or("").to_string(),
             }].as_mut());
         }
-        
+
         activitys.insert(event_val["ocel:activity"].as_str().unwrap_or("").to_string());
-        
+
         event = OCELEvent {
-            id: event_id.clone(),
+            id: index.clone().to_string(),
             event_type: event_val["ocel:activity"].as_str().unwrap_or("").to_string(),
             time: chrono::DateTime::parse_from_rfc3339(event_val["ocel:timestamp"].as_str().unwrap_or("")).unwrap_or_else(|_| chrono::FixedOffset::east_opt(0).unwrap().timestamp(0, 0)),
             attributes: empty_event_attribute.clone(),
             relationships,
         };
         events.push(event);
+    }
+
+    //-----
+
+    
+  
+    for (event_id, event_val) in json_value["ocel:events"].as_object().unwrap() {
+
     }
     
     
@@ -345,5 +359,18 @@ pub fn sort_hashmap_by_numeric_keys<K, V>(
     });
 
     entries
+}
+///comare 2 bindings
+pub fn equals(a: &Vec<(String, HashMap<String, HashSet<String>>)>, b: &Vec<(String, HashMap<String, HashSet<String>>)>) -> bool{
+    //outer Vec is for equal bindings in same order
+    if a.len() != b.len() {
+        return false;
+    }
+    for ((a_act, a_binding), (b_act, b_binding)) in a.iter().zip(b.iter()){
+        if a_act.len() != b_act.len() { return false; }
+        
+        if a_act != b_act { return false; }
+    }
+    return true;
 }
 

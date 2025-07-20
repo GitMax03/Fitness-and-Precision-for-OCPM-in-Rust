@@ -44,7 +44,7 @@ pub fn get_test_ocel() -> pm::OCEL {
     //get event presets
     let presets = get_event_presets(&ocel, &id_to_event);
 
-    print_presets(&presets);
+    print_presets(&presets.0);
 }
 pub fn test_eog() {
     let ocel = get_test_ocel();
@@ -321,7 +321,7 @@ fn create_events() -> Vec<OCELEvent> {
 
     vec![
         OCELEvent {
-            id: "e1".to_string(),
+            id: "1".to_string(),
             event_type: "Fuel plane".to_string(),
             time: time,
             attributes: vec![
@@ -332,7 +332,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e2".to_string(),
+            id: "2".to_string(),
             event_type: "Check-in".to_string(),
             time: time.add(chrono::Duration::hours(1)),
             attributes: vec![
@@ -343,7 +343,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e3".to_string(),
+            id: "3".to_string(),
             event_type: "Check-in".to_string(),
             time: time.add(chrono::Duration::hours(2)),
             attributes: vec![
@@ -354,7 +354,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e4".to_string(),
+            id: "4".to_string(),
             event_type: "Load cargo".to_string(),
             time: time.add(chrono::Duration::hours(3)),
             attributes: vec![],
@@ -365,7 +365,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e5".to_string(),
+            id: "5".to_string(),
             event_type: "Lift off".to_string(),
             time: time.add(chrono::Duration::hours(4)),
             attributes: vec![
@@ -376,7 +376,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e6".to_string(),
+            id: "6".to_string(),
             event_type: "Unload".to_string(),
             time: time.add(chrono::Duration::hours(5)),
             attributes: vec![],
@@ -387,7 +387,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e7".to_string(),
+            id: "7".to_string(),
             event_type: "Pick up @ dest".to_string(),
             time: time.add(chrono::Duration::hours(6)),
             attributes: vec![
@@ -398,7 +398,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e8".to_string(),
+            id: "8".to_string(),
             event_type: "Pick up @ dest".to_string(),
             time: time.add(chrono::Duration::hours(7)),
             attributes: vec![
@@ -409,7 +409,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e9".to_string(),
+            id: "9".to_string(),
             event_type: "Clean".to_string(),
             time: time.add(chrono::Duration::hours(8)),
             attributes: vec![
@@ -420,7 +420,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e10".to_string(),
+            id: "10".to_string(),
             event_type: "Fuel plane".to_string(),
             time: time.add(chrono::Duration::hours(9)),
             attributes: vec![],
@@ -429,7 +429,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e11".to_string(),
+            id: "11".to_string(),
             event_type: "Check-in".to_string(),
             time: time.add(chrono::Duration::hours(10)),
             attributes: vec![],
@@ -438,7 +438,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e12".to_string(),
+            id: "12".to_string(),
             event_type: "Check-in".to_string(),
             time: time.add(chrono::Duration::hours(11)),
             attributes: vec![],
@@ -447,7 +447,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e13".to_string(),
+            id: "13".to_string(),
             event_type: "Load cargo".to_string(),
             time: time.add(chrono::Duration::hours(12)),
             attributes: vec![],
@@ -458,7 +458,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e14".to_string(),
+            id: "14".to_string(),
             event_type: "Lift off".to_string(),
             time: time.add(chrono::Duration::hours(13)),
             attributes: vec![
@@ -469,7 +469,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e15".to_string(),
+            id: "15".to_string(),
             event_type: "Unload".to_string(),
             time: time.add(chrono::Duration::hours(14)),
             attributes: vec![],
@@ -480,7 +480,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e16".to_string(),
+            id: "16".to_string(),
             event_type: "Clean".to_string(),
             time: time.add(chrono::Duration::hours(15)),
             attributes: vec![
@@ -491,7 +491,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e17".to_string(),
+            id: "17".to_string(),
             event_type: "Pick up @ dest".to_string(),
             time: time.add(chrono::Duration::hours(16)),
             attributes: vec![
@@ -502,7 +502,7 @@ fn create_events() -> Vec<OCELEvent> {
             ],
         },
         OCELEvent {
-            id: "e18".to_string(),
+            id: "18".to_string(),
             event_type: "Pick up @ dest".to_string(),
             time: time.add(chrono::Duration::hours(17)),
             attributes: vec![

@@ -35,13 +35,23 @@ const LOG_MODEL: &str = "small running example";
 average: 0.001576
  */
 
+/*
+not replayble events: in current model:
+    702, 703, 704, 705, 706, 707 ("Refuse offer" without "Deny")
+    
+
+ */
+
 fn main() {
 
     let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
     ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
-    //run();
+
+    test_running_example();
+
+    run();
     //test::test_ocpn();
-    //test_running_example();
+
     
 
     //test::test_enabled_model_act();
@@ -69,6 +79,11 @@ fn get_ocel_ocpn() -> (OCEL, OCPN) {
             let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
             let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate.json");
             (ocel, ocpn)
+            /*
+            not replayble events:
+                1603
+                18274,
+             */
         },
         3 => {
             let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
@@ -107,7 +122,7 @@ fn test_running_example(){
     print!("#################### test running example ####################\n");
 
 
-    let presets = enabled_log_act::get_event_presets(&ocel, &id_to_event);
+    let (presets, id_presets) = enabled_log_act::get_event_presets(&ocel, &id_to_event);
     println!(".");
     
     let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
@@ -121,7 +136,7 @@ fn test_running_example(){
     
     let (enabled_log_activities, context_map) = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
     println!(".");
-    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map, &all_object_types, &id_to_event);
+    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map, &all_object_types, &id_to_event, &id_presets);
     println!(".");
     /*
     save_to_ron(&presets.clone(), "src/test/Expected results (running example)/presets.ron").unwrap();
