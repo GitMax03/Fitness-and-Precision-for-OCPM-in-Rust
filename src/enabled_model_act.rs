@@ -9,6 +9,7 @@ use crate::NUMBER_OF_ITERATIONS;
 use crate::utils::{equals};
 use dashmap::DashMap;
 use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 use process_mining::event_log::Event;
 
 static MULTITHREADING: bool = true; //if true, use multithreading for enabled model activities calculation
@@ -22,8 +23,6 @@ pub fn get_enabled_model_activities_(
     id_to_event: &HashMap<String, OCELEvent>,
     id_presets: &HashMap<String, Vec<String>>, //event_id, events in presets
 ) -> HashMap<String, HashSet<String>> { //event_id, enabled_model_activities
-
-    let mut results: HashMap<String, HashSet<String>> = HashMap::new();
 
     //println!("Contexts map: {:?}", contexts_map);
 
@@ -42,7 +41,173 @@ pub fn get_enabled_model_activities_(
     }
     //map of event ids and Markings of all states that replayed the binding sequence of the event
     //let mut prev_replayed_event_map: DashMap<String, RwLock<Vec<HashMap<String, HashSet<String>>>>> = DashMap::new(); //event_id, Vec<Marking>
-    let mut prev_replayed_event_map = Arc::new(DashMap::<String, Option<Vec<Marking>>>::new());
+    let mut prev_replayed_event_map = Arc::new(DashMap::<String, Option<Vec<Marking>>>::with_shard_amount(512)); //event_id, Vec<Marking>
+    
+    //for DEBUG
+    if MULTITHREADING {
+
+        let mut results: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut en_act_for_context: Arc<DashMap<u64, HashSet<String>>> = Arc::new(DashMap::new()); //HAsh of context, enabled model activities for this context
+        
+        //stats
+        let finished_events: Arc<std::sync::atomic::AtomicUsize> = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let print_lock = Arc::new(AtomicBool::new(false));
+        
+        context_event_map.par_iter().for_each(|(cntxt, events)| {
+            #[cfg(feature = "progress-percentage")]{
+
+                //print percentage every 5 iterations
+                if print_lock
+                    .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                    .is_ok()
+                {
+                    let finished = finished_events.load(Ordering::Relaxed).clone();
+                    if finished % 5 == 0 {
+                        println!("Enabled Model act: {:.2}%",
+                                 (finished as f64 / id_to_event.len() as f64 * 100.0)
+                        );
+                    }
+                    //free print lock
+                    print_lock.store(false, Ordering::Relaxed);
+                }
+            }
+            
+            
+
+            let mut result: HashSet<String> = HashSet::new();
+            for event_id in events {
+                //println!("{}", event_id);
+                //calculate enabled model activities for this event
+                /*
+                let mut prev_replayed_event_map = Arc::clone(&prev_replayed_event_map);
+                let local_copy: HashMap<_, _> = prev_replayed_event_map
+                    .iter()
+                    .map(|r| (r.key().clone(), r.value().clone()))
+                    .collect();
+                    
+                 */
+                
+                result.extend(get_enabled_model_activities_for_event(
+                    event_id,
+                    contexts.get(event_id).unwrap(),
+                    bindings.get(event_id).unwrap(),
+                    ocpn,
+                    all_object_types,
+                    id_to_event,
+                    previsous_event_map.get(event_id).unwrap().clone(),
+                    //&mut prev_replayed_event_map,
+                    //&local_copy
+                ));
+            }
+
+            //maybe insert later in single thread?
+            //add result to enabled activities for this context
+            en_act_for_context.insert(
+                *cntxt,
+                result,
+            );
+
+    
+            
+            #[cfg(feature = "progress-percentage")]{
+                finished_events.fetch_add(events.len(), std::sync::atomic::Ordering::Relaxed);
+            }
+
+
+        });
+        //insert enabled activities for each context into results
+        for (cntxt, events) in context_event_map.iter() {
+            for event in events{
+                results.insert(event.clone(), en_act_for_context.get(cntxt).unwrap().clone());
+            }
+        }
+        
+        results
+    }else{
+        //OLD VERSION:
+        //iterate over each different context
+        let mut results: HashMap<String, HashSet<String>> = HashMap::new();
+        
+        for (_, events) in context_event_map {
+            #[cfg(feature = "progress-percentage")]{
+    
+                //print percentage every 5 iterations
+                if results.len() % 5 == 0 {
+                    println!("Enabled Model act: {}%", (results.len() as f64 / id_to_event.len() as f64 * 100.0 * 100.0).round() / 100.0);
+                }
+            }
+    
+            //enabled model activities for this context
+            //if: just for debug
+            // false => multithread
+            if !MULTITHREADING {
+                let mut result: HashSet<String> = HashSet::new();
+                let local_copy: HashMap<_, _> = prev_replayed_event_map
+                    .iter()
+                    .map(|r| (r.key().clone(), r.value().clone()))
+                    .collect();
+                for event_id in events {
+                    //println!("{}", event_id);
+                    //calculate enabled model activities for this event
+                    //TODO use multithreading here!
+                    result.extend(get_enabled_model_activities_for_event(
+                        event_id,
+                        contexts.get(event_id).unwrap(),
+                        bindings.get(event_id).unwrap(),
+                        ocpn,
+                        all_object_types,
+                        id_to_event,
+                        previsous_event_map.get(event_id).unwrap().clone(),
+                        //&mut prev_replayed_event_map,
+                        //&local_copy
+                    ));
+                }
+    
+                //TODO parallel insert and ArcHashSet
+                //add result to results
+                for event_id in events {
+                    results.insert(event_id.clone(), result.clone());
+                }
+            } else {
+    
+                //multithreaded
+                let result: HashSet<String> = events
+                    .par_iter()
+                    .map(|event_id| {
+                        let mut prev_replayed_event_map = Arc::clone(&prev_replayed_event_map);
+                        let local_copy: HashMap<_, _> = prev_replayed_event_map
+                            .iter()
+                            .map(|r| (r.key().clone(), r.value().clone()))
+                            .collect();
+    
+                        get_enabled_model_activities_for_event(
+                            event_id,
+                            contexts.get(event_id).unwrap(),
+                            bindings.get(event_id).unwrap(),
+                            ocpn,
+                            all_object_types,
+                            id_to_event,
+                            previsous_event_map.get(event_id).unwrap().clone(),
+                            //&mut prev_replayed_event_map,
+                            //&local_copy
+                        )
+                    })
+                    .reduce(
+                        || HashSet::new(),
+                        |mut res_set, res| {
+                            res_set.extend(res);
+                            res_set
+                        },
+                    );
+                //TODO parallel insert and ArcHashSet
+                //add result to results
+                for event_id in events {
+                    results.insert(event_id.clone(), result.clone());
+                }
+            }
+        }
+        results
+    }
 
 
     //DEBUG
@@ -66,82 +231,6 @@ pub fn get_enabled_model_activities_(
     }
     return results;
     */
-
-
-    //iterate over each different context
-    for (_, events) in context_event_map {
-        #[cfg(feature = "progress-percentage")]{
-
-            //print percentage every 5 iterations
-            if results.len() % 5 == 0 {
-                println!("Enabled Model act: {}%", (results.len() as f64 / id_to_event.len() as f64 * 100.0 * 100.0).round() / 100.0);
-            }
-        }
-
-        //enabled model activities for this context
-        //if: just for debug
-        // false => multithread
-
-
-        if !MULTITHREADING {
-            let mut result: HashSet<String> = HashSet::new();
-            for event_id in events {
-                println!("{}", event_id);
-                //calculate enabled model activities for this event
-                //TODO use multithreading here!
-                result.extend(get_enabled_model_activities_for_event(
-                    event_id,
-                    contexts.get(event_id).unwrap(),
-                    bindings.get(event_id).unwrap(),
-                    ocpn,
-                    all_object_types,
-                    id_to_event,
-                    previsous_event_map.get(event_id).unwrap().clone(),
-                    &mut prev_replayed_event_map,
-                ));
-            }
-
-            //TODO parallel insert and ArcHashSet
-            //add result to results
-            for event_id in events {
-                results.insert(event_id.clone(), result.clone());
-            }
-        } else {
-
-            //multithreaded
-            let result: HashSet<String> = events
-                .par_iter()
-                .map(|event_id| {
-                    let mut prev_replayed_event_map = Arc::clone(&prev_replayed_event_map);
-
-                    get_enabled_model_activities_for_event(
-                        event_id,
-                        contexts.get(event_id).unwrap(),
-                        bindings.get(event_id).unwrap(),
-                        ocpn,
-                        all_object_types,
-                        id_to_event,
-                        previsous_event_map.get(event_id).unwrap().clone(),
-                        &mut prev_replayed_event_map,
-                    )
-                })
-                .reduce(
-                    || HashSet::new(),
-                    |mut res_set, res| {
-                        res_set.extend(res);
-                        res_set
-                    },
-                );
-            //TODO parallel insert and ArcHashSet
-            //add result to results
-            for event_id in events {
-                results.insert(event_id.clone(), result.clone());
-            }
-        }
-    }
-
-
-    results
 }
 
 pub fn get_enabled_model_activities_for_event(
@@ -152,7 +241,8 @@ pub fn get_enabled_model_activities_for_event(
     all_object_types: &HashSet<String>,
     id_to_event: &HashMap<String, OCELEvent>,
     previous_event: String,
-    prev_replayed_event_map: &mut Arc<DashMap<String, Option<Vec<Marking>>>>,
+    //prev_replayed_event_map: &mut Arc<DashMap<String, Option<Vec<Marking>>>>,
+    //local_map: &HashMap<String, Option<Vec<Marking>>>, //local map of prev_replayed_event_map to avoid borrowing issues
     
 ) -> HashSet<String> {
 
@@ -196,14 +286,18 @@ pub fn get_enabled_model_activities_for_event(
         needed_objects.entry(object_type.clone()).or_insert_with(HashSet::new).insert(relation.object_id.clone());
     }
     //if previos event was already replayed, use the map to get the markings as initial state
-    'cache_init_state: {if let Some(markings) = prev_replayed_event_map.get(&previous_event) {
+    'cache_init_state: {
+        //if let Some(markings) = local_map.get(&previous_event) {
+        if false{
         
         //problem: sometimes the previous event does not have all needed objects
         //TODO: fix: insert the missing objects into the initial places:
         //TODO: Too much overhead?
         //quickfix: only use when all objects are present in the first marking (if fist marking contains it, all other markings will contain it too)
         
-        
+        //test:
+        let markings = Some(vec![Marking::new(); 2]);
+            
         //let mut extend_marking: HashMap<String, HashSet<String>> = HashMap::new(); //place_id: objects
         let first_marking = markings.clone().unwrap().first().unwrap().clone();
         //check first marking for needed objects
@@ -221,7 +315,7 @@ pub fn get_enabled_model_activities_for_event(
                 );
 
                 state_queue.push_back((initial_marking.clone(), 0, hash_marking(&initial_marking.clone(), &ocpn.object_to_type))); //TODO: clone just for debug
-                println!("we breaking free... saaaawing ..... flieeeeeing");
+                //println!("we breaking free... saaaawing ..... flieeeeeing");
                 break 'cache_init_state; //break if statement
             }
         }
@@ -230,7 +324,7 @@ pub fn get_enabled_model_activities_for_event(
             //add marking to state queue
             state_queue.push_back((marking.clone(), original_binding_len -1 , hash_marking(&marking, &ocpn.object_to_type)));
         }
-        println!("Using previous replayed markings for event: {}; skipped binding seq. len: {}", event_id, original_binding_len - 1);
+        //println!("Using previous replayed markings for event: {}; skipped binding seq. len: {}", event_id, original_binding_len - 1);
         //println!("State queue: {:?}\n", state_queue);
         
         
@@ -414,9 +508,9 @@ pub fn get_enabled_model_activities_for_event(
     }
     
     //add replaying states to prev_replayed_event_map
-    if !prev_replayed_event_map.contains_key(event_id) {
-        prev_replayed_event_map.insert(event_id.clone(), Some(prev_replayed_event_map_));
-    }
+    //if !prev_replayed_event_map.contains_key(event_id) {
+    //    prev_replayed_event_map.insert(event_id.clone(), Some(prev_replayed_event_map_));
+    //}
 
     result
 }
