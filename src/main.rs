@@ -47,7 +47,7 @@ fn main() {
     //let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
     //ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
 
-    test_running_example();
+    //test_running_example();
 
     run();
     //test::test_ocpn();

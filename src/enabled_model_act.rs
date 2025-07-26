@@ -107,8 +107,7 @@ pub fn get_enabled_model_activities_(
                 result,
             );
 
-    
-            
+
             #[cfg(feature = "progress-percentage")]{
                 finished_events.fetch_add(events.len(), std::sync::atomic::Ordering::Relaxed);
             }
@@ -259,7 +258,7 @@ pub fn get_enabled_model_activities_for_event(
     
     //--------------------------------------------
     //replay binding sequence:
-    //queue of states: queue of (Marking: <Place id, [object_ids]>, binding sequence: <activity, HashMap< object type: [objects]>, Hash of marking)
+    //queue of states: queue of (Marking: <Place id, [object_ids]>, index of binding sequence, Hash of marking)
     //let mut state_queue: VecDeque<(Marking, Vec<(String, HashMap<String, HashSet<String>>)>, u64)> = VecDeque::new();
     let mut state_queue: VecDeque<(Marking, usize, u64)> = VecDeque::new();
 
@@ -346,7 +345,7 @@ pub fn get_enabled_model_activities_for_event(
     let mut prev_replayed_event_map_: Vec<Marking> = vec![];
     
 
-
+    //REPLAY -------
     
 
     let mut result: HashSet<String> = HashSet::new(); //result: list of activities
@@ -362,7 +361,7 @@ pub fn get_enabled_model_activities_for_event(
 
         //TODO !!!!! IF BINDING SEQUENCE IS 0 ALL OTHER STATES CAN BE DELETED??? => cant be the richt states ig => is false i think!!!
         //println!("{}", state_queue.len());
-        if state_queue.len() > maximal_queue_size { println!("ABORT! statequeu length for event: {}", event_id); //panic!();
+        if state_queue.len() > maximal_queue_size { println!("ABORT! statequeu length for event: {}", event_id); //panic!()? this lenth sould not be reached!
             break;}
 
         let temp = state_queue.pop_front().unwrap();
@@ -393,7 +392,7 @@ pub fn get_enabled_model_activities_for_event(
             }
 
             //if binding sequence is fully replayed in this state add it to the prev_replayed_event_map_
-            prev_replayed_event_map_.push(current_state.clone());
+            //prev_replayed_event_map_.push(current_state.clone());
 
             //add enabled transitions to result
               result.extend(ocpn.get_enabled_transitions_from_marking(&current_state)
@@ -401,7 +400,7 @@ pub fn get_enabled_model_activities_for_event(
                 .map(|t_id| ocpn.transitions.get(&t_id).unwrap().activity.clone()));
             //println!("Found {} enabled transitions for event: {}", result.len(), event_id);
         }
-        //TODO: idear: if binding not fully replayed -> only move tokens that are nessary  => false?: solent transitions with two inputs?
+        //TODO: idea: if binding not fully replayed -> only move tokens that are nessary  => false?: solent transitions with two inputs?
         //get next enabled binding
         if let Some(mut next_binding) = ocpn.remove_next_binding_(&mut current_binding, &current_state) {//if a binding is enabled, remove it
             // there is a binding enabled
@@ -411,11 +410,9 @@ pub fn get_enabled_model_activities_for_event(
             //enqueue resulting state
             //only push if state new or binding len is different
             let hashed_next_state = hash_marking(&next_state, &ocpn.object_to_type);
-            if seen_markings.contains(&(hashed_next_state, current_binding.len())){
-                //println!("Found existing binding at {}", current_binding.len());
-                
-                //continue;
-            }
+            //check if state is already seen is not needed, because binding is different
+
+
             //println!("------- \n \n -------");
             //println!("CON: ");
             //print_marking(&DEBUG_states.iter().map(|(s, _)| s).collect::<Vec<&Marking>>());
@@ -443,13 +440,22 @@ pub fn get_enabled_model_activities_for_event(
                 //state_queue.push_back((marking.clone(), current_binding.clone(), hash_marking(&marking)));
                 
             //}
+            let marking = Marking::from([
+                ("offer5".to_string(), HashSet::from(["Offer_212771240".to_string()])),
+                ("offer1".to_string(), HashSet::from(["Offer_1933060811".to_string()])),
+                ("application2".to_string(), HashSet::from(["Application_1971576090".to_string()])),
+                ("application25".to_string(), HashSet::from(["Application_1971576090".to_string()])),
+            ]);
+            if next_state == marking {
+                println!("Found state: {:?}", next_state);
+            }
 
             //DEBUG_states.push((next_state.clone(), current_binding.clone()));
             seen_markings.insert((hashed_next_state.clone(), current_binding.len()));
             state_queue.push_back((next_state.clone(), original_binding_len - current_binding.len(), hash_marking(&next_state, &ocpn.object_to_type)));
 
 
-//SILENT TRANSITIONS
+//SILENT TRANSITIONS -------
         }else{ //there is no enabled binding
 
             /*
@@ -465,28 +471,36 @@ pub fn get_enabled_model_activities_for_event(
             
             let mut enabled_silent_bindings:Vec<(String, HashMap<String, HashSet<String>>)> = vec![];
             //check for any enabled silent transitions
+            if false{
+                /* for caching: uses too much memory
             if let Some(cached) = cache_enabled_silent_bindings.get(&hashed_current_state) {
+
                 //println!("Found cached silent bindings for state: {}", hashed_current_state);
                 //get enabled silent transitions from cache
                 enabled_silent_bindings = cached.clone();
-            }else{
+            }
+
+                 */
+            } else{
                 enabled_silent_bindings = ocpn.get_enabled_silent_transitions_bindings_(&current_state);
-                cache_enabled_silent_bindings.insert(hashed_current_state, (enabled_silent_bindings.clone()));
+                //cache_enabled_silent_bindings.insert(hashed_current_state, (enabled_silent_bindings.clone()));
             }
             //let enabled_silent_bindings = ocpn.get_enabled_silent_transitions_bindings_(&current_state);
             //let enabled_silent_bindings = ocpn.get_enabled_silent_transition_bindings(&current_state);
 
             //execute all enabled silent transitions
-            for mut enabled_binding in enabled_silent_bindings {
+            for (trans, enabled_binding) in enabled_silent_bindings {
                 
-                
+                //let mut enabled_binding = (trans.clone(), HashMap::from([(object_type.clone(), HashSet::from([object.clone()]))]));
+
                 //execute binding
-                let state = ocpn.execute_binding_(&mut enabled_binding, &current_state); //TODO check func
+                let state = ocpn.execute_binding_(&mut (trans, enabled_binding), &current_state); //TODO check func
 
                 //enqueue resulting state
                 //only push if state new or binding len is different
                 let hashed_next_state = hash_marking(&state, &ocpn.object_to_type);
-                
+
+
                 if seen_markings.contains(&(hashed_next_state.clone(), current_binding.len())){
                     //print!(".");
                     continue;
@@ -499,7 +513,8 @@ pub fn get_enabled_model_activities_for_event(
                 //DEBUG_states.push((state.clone(), current_binding.clone()));
                 seen_markings.insert((hashed_next_state.clone(), current_binding.len()));
                 state_queue.push_back((state.clone(), temp.1, hash_marking(&state, &ocpn.object_to_type)));
-
+                
+                
             }
         }
     }
