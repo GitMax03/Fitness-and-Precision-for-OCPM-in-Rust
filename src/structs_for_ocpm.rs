@@ -17,14 +17,18 @@ use std::ops::Index;
 use petgraph::graph::DiGraph;
 use petgraph::visit::NodeRef;
 use rayon::in_place_scope;
+use rustc_hash::FxHasher;
 use serde_json::json;
+
+//opotimuatiohn
+use nohash_hasher::BuildNoHashHasher;
 
 //OCPN
 #[derive(Clone)]
 pub struct OCPN {
 
-    pub places: HashMap<String, Place>, // <place id, Place> TODO: maybe add object types?
-
+    pub places: HashMap<String, Place>, // <place id, Place> 
+    
     pub transitions: HashMap<String, Transition>, //<transition_ids / activities, Transition>
     pub silent_transtions: HashMap<String, Transition>, //transition ids, Transition
 
@@ -407,16 +411,19 @@ impl OCPN {
 
         //filter transitions that have all input places in the marking
         for transition_id in assotiated_transitions {
+            
             //get the transition
             if let Some(transition) = self.transitions.get(&transition_id) {
+                
                 //get the required inputs (if one imput is needed : // (place_id, object_type), count of objects needed
-                let required_inputs = self.get_required_input_places_and_obj_types(&transition.clone());
+                let mut required_inputs = self.get_required_input_places_and_obj_types(&transition.clone());
 
                 let mut involved_objects: Vec<String> = vec![]; //objects that are involved in this transition
+                
 
                 //check if all required input places are in the marking
                 let mut is_enabled = true;
-                for ((place_id, object_type), count) in required_inputs {
+                for ((place_id, object_type), count) in required_inputs{
 
                     match marking.get(&place_id) {
                         Some(objects) => {
@@ -769,36 +776,15 @@ pub struct Arc {
 }
 
 
+
 /// Marking: <place id, [object ids, -DELETED: Object type]>
 
 pub type Marking = HashMap<String, HashSet<String>>; //place id, [object ids, -DELETED: Object type]
 
-pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>) -> u64 {
+pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>, additional: &Option<u32>) -> u64 {
     //TODO: assumption: 2 objects with same id in the same place are not allowed => are only considered as one object is solved by HashSet?
-    /*
-    let mut hasher = DefaultHasher::new();
-
-    let mut sorted_places: Vec<_> = marking.iter().collect();
-    sorted_places.sort_by_key(|(place, _)| *place);
-
-    for (place, objects) in sorted_places {
-        
-        place.hash(&mut hasher);
-
-        let mut sorted_objs: Vec<_> = objects.iter().collect();
-        sorted_objs.sort(); 
-
-        for obj in sorted_objs {
-            obj.hash(&mut hasher);
-        }
-    }
-
-    hasher.finish()
     
-     */
-
-
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = FxHasher::default(); //faster better hasher
 
     // Sort for consistent hashing
     let mut sorted_places: Vec<_> = marking.iter().collect();
@@ -820,6 +806,11 @@ pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>)
             obj_type.hash(&mut hasher);
             count.hash(&mut hasher);
         }
+    }
+    
+    // Add additional value if provided
+    if let Some(additional_value) = additional {
+        additional_value.hash(&mut hasher);
     }
 
     hasher.finish()

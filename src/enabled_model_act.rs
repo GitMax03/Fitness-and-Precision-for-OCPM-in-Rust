@@ -2,6 +2,7 @@ use crate::structs_for_ocpm::{hash_marking, print_marking, Marking, OCPN};
 use counter::Counter;
 use process_mining::ocel::ocel_struct::OCELEvent;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::format;
 use std::task::Context;
 use process_mining::OCEL;
 use rayon::prelude::*;
@@ -9,8 +10,12 @@ use crate::NUMBER_OF_ITERATIONS;
 use crate::utils::{equals};
 use dashmap::DashMap;
 use std::sync::{Arc, RwLock};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use process_mining::event_log::Event;
+//for optimization
+use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::FxHashSet;
+use nohash_hasher::BuildNoHashHasher;
 
 static MULTITHREADING: bool = true; //if true, use multithreading for enabled model activities calculation
 
@@ -22,7 +27,7 @@ pub fn get_enabled_model_activities_(
     all_object_types: &HashSet<String>,
     id_to_event: &HashMap<String, OCELEvent>,
     id_presets: &HashMap<String, Vec<String>>, //event_id, events in presets
-) -> HashMap<String, HashSet<String>> { //event_id, enabled_model_activities
+) -> FxHashMap<String, FxHashSet<String>> { //event_id, enabled_model_activities
 
     //println!("Contexts map: {:?}", contexts_map);
 
@@ -41,79 +46,163 @@ pub fn get_enabled_model_activities_(
     }
     //map of event ids and Markings of all states that replayed the binding sequence of the event
     //let mut prev_replayed_event_map: DashMap<String, RwLock<Vec<HashMap<String, HashSet<String>>>>> = DashMap::new(); //event_id, Vec<Marking>
-    let mut prev_replayed_event_map = Arc::new(DashMap::<String, Option<Vec<Marking>>>::with_shard_amount(512)); //event_id, Vec<Marking>
+    let mut prev_replayed_event_map = Arc::new(DashMap::<String, Option<Vec<Marking>>>::with_shard_amount(128)); //event_id, Vec<Marking>
     
     //for DEBUG
     if MULTITHREADING {
 
-        let mut results: HashMap<String, HashSet<String>> = HashMap::new();
-        let mut en_act_for_context: Arc<DashMap<u64, HashSet<String>>> = Arc::new(DashMap::new()); //HAsh of context, enabled model activities for this context
+        let mut results: FxHashMap<String, FxHashSet<String>> = FxHashMap::with_capacity_and_hasher(id_to_event.len(), FxBuildHasher::default());
+        let en_act_for_context: Arc<DashMap<u64, FxHashSet<String>>> = Arc::new(DashMap::with_capacity(context_event_map.len())); //HAsh of context, enabled model activities for this context
         
         //stats
         let finished_events: Arc<std::sync::atomic::AtomicUsize> = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let print_lock = Arc::new(AtomicBool::new(false));
+        //TODO last 0.2%take very long => maybe use batching?
+        let mut context_vec: Vec<_> = context_event_map.iter().collect();
+        //sort by number of events in context
+        context_vec.sort_by_key(|(_, events)| -(events.len() as isize)); // TODO add "-" if needed
         
-        context_event_map.par_iter().for_each(|(cntxt, events)| {
-            #[cfg(feature = "progress-percentage")]{
-
-                //print percentage every 5 iterations
-                if print_lock
-                    .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
-                    .is_ok()
-                {
-                    let finished = finished_events.load(Ordering::Relaxed).clone();
-                    if finished % 5 == 0 {
-                        println!("Enabled Model act: {:.2}%",
-                                 (finished as f64 / id_to_event.len() as f64 * 100.0)
-                        );
-                    }
-                    //free print lock
-                    print_lock.store(false, Ordering::Relaxed);
-                }
+        //sort by prefix length
+        context_vec.sort_by_key(|(_, events)| 
+            -(events.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>() as isize) //first: context with largest combined prefix length
+        );
+        let temp = context_vec.pop().unwrap();
+        context_vec.insert(0, temp); //move first element to end of vec => kontext for first events should not be last in queue
+        println!("{:?}", context_vec[0].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        println!("{:?}", context_vec[1].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        println!("{:?}", context_vec[2].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        println!("{:?}", context_vec[3].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        println!("{:?}", context_vec[4].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        println!("{:?}", context_vec[5].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        println!("{:?}", context_vec.last().unwrap().1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
+        
+        
+        println!("->->->->{:?}", id_presets["12906"]);
+        for (pos, cont) in context_vec.iter().enumerate(){
+            if cont.1.contains("12906") {
+                println!("Found context for event 12906: {:?} at index {} of {}", cont, pos, context_vec.len());
             }
-            
-            
+        }
+        
+        
+        //test
+        let progress = Arc::new(AtomicU16::new(0));
+        let nested_pool = rayon::ThreadPoolBuilder::new().num_threads(9).build().unwrap();
 
-            let mut result: HashSet<String> = HashSet::new();
-            for event_id in events {
-                //println!("{}", event_id);
-                //calculate enabled model activities for this event
-                /*
-                let mut prev_replayed_event_map = Arc::clone(&prev_replayed_event_map);
-                let local_copy: HashMap<_, _> = prev_replayed_event_map
-                    .iter()
-                    .map(|r| (r.key().clone(), r.value().clone()))
-                    .collect();
-                    
-                 */
+        /*
+            (
+            events.iter().map(|event| id_presets.get(event).unwrap().len()
+            ).sum::<usize>() as isize)
+         */
+
+
+        context_vec.par_chunks(2).for_each(|chunk| {
+            chunk.iter().for_each(|(ctxt, events)| {
                 
-                result.extend(get_enabled_model_activities_for_event(
-                    event_id,
-                    contexts.get(event_id).unwrap(),
-                    bindings.get(event_id).unwrap(),
-                    ocpn,
-                    all_object_types,
-                    id_to_event,
-                    previsous_event_map.get(event_id).unwrap().clone(),
-                    //&mut prev_replayed_event_map,
-                    //&local_copy
-                ));
-            }
+                
 
-            //maybe insert later in single thread?
-            //add result to enabled activities for this context
-            en_act_for_context.insert(
-                *cntxt,
-                result,
-            );
+                #[cfg(feature = "progress-percentage")]{
+
+                    //print percentage every 5 iterations
+                    if print_lock
+                        .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        let finished = finished_events.load(Ordering::Relaxed).clone();
+                        if finished % 5 == 0 {
+                            let percentage = (finished as f64 / id_to_event.len() as f64 * 100.0);
+                            progress.store((percentage.round() as usize).try_into().unwrap(), Ordering::Relaxed);
+                            println!("Enabled Model act: {:.2}%",
+                                     percentage
+                            );
+                        }
+                        //free print lock
+                        print_lock.store(false, Ordering::Relaxed);
+                    }
+                }
+                let mut result: FxHashSet<String> = FxHashSet::default();
+                //TODO: check if nested parallelism is possible here
+                
+                //test nested threading
+                //use nested threading if other threads are finished (often happens after 99%)
+                if progress.load(Ordering::Relaxed) >= 99{
+                    
+                    let _result: Vec<FxHashSet<String>> = nested_pool.install(||{
+                        events
+                            .par_iter()
+                            .map(|event_id| {
+                                println!("starting event: {}", event_id);
+
+                                let temp = get_enabled_model_activities_for_event(
+                                    event_id,
+                                    contexts.get(event_id).unwrap(),
+                                    bindings.get(event_id).unwrap(),
+                                    ocpn,
+                                    all_object_types,
+                                    id_to_event,
+                                    //previsous_event_map.get(event_id).unwrap().clone(),
+                                    //&mut prev_replayed_event_map,
+                                    //&local_copy
+                                );
+                                
+                                println!("finished event: {}", event_id);
+                                temp
+                            })
+                            .collect()
+                    });
+                    for res in _result{
+                        result.extend(res);
+                    }
+                    
+                }else{
+                    for event_id in *events {
+                        //println!("{}", event_id);
+                        //calculate enabled model activities for this event
+                        /*
+                        let mut prev_replayed_event_map = Arc::clone(&prev_replayed_event_map);
+                        let local_copy: HashMap<_, _> = prev_replayed_event_map
+                            .iter()
+                            .map(|r| (r.key().clone(), r.value().clone()))
+                            .collect();
+    
+                         */
 
 
-            #[cfg(feature = "progress-percentage")]{
-                finished_events.fetch_add(events.len(), std::sync::atomic::Ordering::Relaxed);
-            }
+                        result.extend(get_enabled_model_activities_for_event(
+                            event_id,
+                            contexts.get(event_id).unwrap(),
+                            bindings.get(event_id).unwrap(),
+                            ocpn,
+                            all_object_types,
+                            id_to_event,
+                            //previsous_event_map.get(event_id).unwrap().clone(),
+                            //&mut prev_replayed_event_map,
+                            //&local_copy
+                        ));
+                    }
+                }
+
+                //maybe insert later in single thread?
+                //add result to enabled activities for this context
+                en_act_for_context.insert(
+                    **ctxt,
+                    result,
+                );
 
 
+                #[cfg(feature = "progress-percentage")]{
+                    finished_events.fetch_add(events.len(), std::sync::atomic::Ordering::Relaxed);
+                }
+
+
+            });
         });
+
+
+
+        #[cfg(feature = "progress-percentage")]{
+            print!("Enabled Model act: 100.00%\n");
+        }
         //insert enabled activities for each context into results
         for (cntxt, events) in context_event_map.iter() {
             for event in events{
@@ -125,7 +214,7 @@ pub fn get_enabled_model_activities_(
     }else{
         //OLD VERSION:
         //iterate over each different context
-        let mut results: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut results: FxHashMap<String, FxHashSet<String>> = FxHashMap::default();
         
         for (_, events) in context_event_map {
             #[cfg(feature = "progress-percentage")]{
@@ -140,7 +229,7 @@ pub fn get_enabled_model_activities_(
             //if: just for debug
             // false => multithread
             if !MULTITHREADING {
-                let mut result: HashSet<String> = HashSet::new();
+                let mut result: FxHashSet<String> = FxHashSet::default();
                 let local_copy: HashMap<_, _> = prev_replayed_event_map
                     .iter()
                     .map(|r| (r.key().clone(), r.value().clone()))
@@ -156,7 +245,7 @@ pub fn get_enabled_model_activities_(
                         ocpn,
                         all_object_types,
                         id_to_event,
-                        previsous_event_map.get(event_id).unwrap().clone(),
+                        //previsous_event_map.get(event_id).unwrap().clone(),
                         //&mut prev_replayed_event_map,
                         //&local_copy
                     ));
@@ -168,41 +257,7 @@ pub fn get_enabled_model_activities_(
                     results.insert(event_id.clone(), result.clone());
                 }
             } else {
-    
-                //multithreaded
-                let result: HashSet<String> = events
-                    .par_iter()
-                    .map(|event_id| {
-                        let mut prev_replayed_event_map = Arc::clone(&prev_replayed_event_map);
-                        let local_copy: HashMap<_, _> = prev_replayed_event_map
-                            .iter()
-                            .map(|r| (r.key().clone(), r.value().clone()))
-                            .collect();
-    
-                        get_enabled_model_activities_for_event(
-                            event_id,
-                            contexts.get(event_id).unwrap(),
-                            bindings.get(event_id).unwrap(),
-                            ocpn,
-                            all_object_types,
-                            id_to_event,
-                            previsous_event_map.get(event_id).unwrap().clone(),
-                            //&mut prev_replayed_event_map,
-                            //&local_copy
-                        )
-                    })
-                    .reduce(
-                        || HashSet::new(),
-                        |mut res_set, res| {
-                            res_set.extend(res);
-                            res_set
-                        },
-                    );
-                //TODO parallel insert and ArcHashSet
-                //add result to results
-                for event_id in events {
-                    results.insert(event_id.clone(), result.clone());
-                }
+
             }
         }
         results
@@ -239,11 +294,11 @@ pub fn get_enabled_model_activities_for_event(
     ocpn: &OCPN,
     all_object_types: &HashSet<String>,
     id_to_event: &HashMap<String, OCELEvent>,
-    previous_event: String,
+    //previous_event: String,
     //prev_replayed_event_map: &mut Arc<DashMap<String, Option<Vec<Marking>>>>,
     //local_map: &HashMap<String, Option<Vec<Marking>>>, //local map of prev_replayed_event_map to avoid borrowing issues
     
-) -> HashSet<String> {
+) -> FxHashSet<String> {
 
     let mut binding = binding_.clone(); //clone binding to avoid borrowing issues
     let original_binding_len = binding.len();
@@ -260,7 +315,7 @@ pub fn get_enabled_model_activities_for_event(
     //replay binding sequence:
     //queue of states: queue of (Marking: <Place id, [object_ids]>, index of binding sequence, Hash of marking)
     //let mut state_queue: VecDeque<(Marking, Vec<(String, HashMap<String, HashSet<String>>)>, u64)> = VecDeque::new();
-    let mut state_queue: VecDeque<(Marking, usize, u64)> = VecDeque::new();
+    let mut state_queue: VecDeque<(Marking, usize)> = VecDeque::new();
 
 
     //get needed objs
@@ -268,7 +323,7 @@ pub fn get_enabled_model_activities_for_event(
 
     //get all associated objects
     for object_type in all_object_types {
-        for (act, objs) in binding.iter() {
+        for (_, objs) in binding.iter() {
             for (ot, objects) in objs {
                 if ot == object_type {
                     //add objects to needed_objects
@@ -313,7 +368,7 @@ pub fn get_enabled_model_activities_for_event(
                     ocpn,
                 );
 
-                state_queue.push_back((initial_marking.clone(), 0, hash_marking(&initial_marking.clone(), &ocpn.object_to_type))); //TODO: clone just for debug
+                state_queue.push_back((initial_marking.clone(), 0)); //TODO: clone just for debug
                 //println!("we breaking free... saaaawing ..... flieeeeeing");
                 break 'cache_init_state; //break if statement
             }
@@ -321,7 +376,7 @@ pub fn get_enabled_model_activities_for_event(
         
         for marking in markings.clone().unwrap().iter() {
             //add marking to state queue
-            state_queue.push_back((marking.clone(), original_binding_len -1 , hash_marking(&marking, &ocpn.object_to_type)));
+            state_queue.push_back((marking.clone(), original_binding_len -1 ));
         }
         //println!("Using previous replayed markings for event: {}; skipped binding seq. len: {}", event_id, original_binding_len - 1);
         //println!("State queue: {:?}\n", state_queue);
@@ -339,21 +394,37 @@ pub fn get_enabled_model_activities_for_event(
             ocpn,
         );
 
-        state_queue.push_back((initial_marking.clone(), 0, hash_marking(&initial_marking.clone(), &ocpn.object_to_type))); //TODO: clone just for debug
+        state_queue.push_back((initial_marking.clone(), 0)); //TODO: clone just for debug
 
     }}
     let mut prev_replayed_event_map_: Vec<Marking> = vec![];
     
 
+
     //REPLAY -------
+
+
+
+    //DEBUG
+    let mut ITER_COUNT: usize = 0;
     
 
-    let mut result: HashSet<String> = HashSet::new(); //result: list of activities
-    //let mut seen_markings: HashMap<u64, Vec<(String, HashMap<String, HashSet<String>>)>> = HashMap::new(); //seen amrkings: <Hash of marking, len of binding> to avoid infinite loops
-    let mut seen_markings: HashSet<(u64, usize)> = HashSet::new();
+    let mut result: FxHashSet<String> = FxHashSet::default(); //result: list of activities
+    // u64 is hashed => NoHashHaser could be used
+    //let mut seen_markings: HashSet<(u64, u32)> = HashSet::new(); //Hash of Marking, len of binding
+    let mut seen_markings: HashSet<u64, BuildNoHashHasher<u64>> = HashSet::with_hasher(BuildNoHashHasher::default());
+
+    //let mut seen_markings: FastSeenMarkingHash = HashSet::default();
     //TODO is same for all events, so can be moved outside of function
-    let mut cache_enabled_silent_bindings: HashMap<u64, Vec<(String, HashMap<String,HashSet<String>>)>> = HashMap::new(); //cache for enabled silent bindings: <Hash of marking, vec of bindings>
+    //let mut cache_enabled_silent_bindings: HashMap<u64, Vec<(String, HashMap<String,HashSet<String>>)>> = HashMap::new(); //cache for enabled silent bindings: <Hash of marking, vec of bindings>
     let maximal_queue_size = ocpn.places.len().pow(10) * 10;
+
+    //TODO faster do declar before loop
+    let mut temp: (Marking, usize);
+    let mut current_state: Marking;
+    let mut current_binding: Vec<(String, HashMap<String, HashSet<String>>)>;
+
+
     //let mut current_binding = binding_.clone(); //current binding sequence to replay
     while !state_queue.is_empty() {
 
@@ -363,11 +434,13 @@ pub fn get_enabled_model_activities_for_event(
         //println!("{}", state_queue.len());
         if state_queue.len() > maximal_queue_size { println!("ABORT! statequeu length for event: {}", event_id); //panic!()? this lenth sould not be reached!
             break;}
+        
+        
 
-        let temp = state_queue.pop_front().unwrap();
-        let current_state = temp.0;
-        let mut current_binding = binding[temp.1.clone()..].to_vec();
-        let hashed_current_state = temp.2;
+        temp = state_queue.pop_front().unwrap();
+        current_state = temp.0;
+        current_binding = binding[temp.1.clone()..].to_vec();
+        
         
 
         //DEBUG
@@ -409,7 +482,7 @@ pub fn get_enabled_model_activities_for_event(
             let next_state = ocpn.execute_binding_(&mut next_binding, &current_state);
             //enqueue resulting state
             //only push if state new or binding len is different
-            let hashed_next_state = hash_marking(&next_state, &ocpn.object_to_type);
+            let hashed_next_state = hash_marking(&next_state, &ocpn.object_to_type, &Some(current_binding.len() as u32));
             //check if state is already seen is not needed, because binding is different
 
 
@@ -451,8 +524,8 @@ pub fn get_enabled_model_activities_for_event(
             }
 
             //DEBUG_states.push((next_state.clone(), current_binding.clone()));
-            seen_markings.insert((hashed_next_state.clone(), current_binding.len()));
-            state_queue.push_back((next_state.clone(), original_binding_len - current_binding.len(), hash_marking(&next_state, &ocpn.object_to_type)));
+            seen_markings.insert(hashed_next_state);
+            state_queue.push_back((next_state, original_binding_len - current_binding.len()));
 
 
 //SILENT TRANSITIONS -------
@@ -489,32 +562,39 @@ pub fn get_enabled_model_activities_for_event(
             //let enabled_silent_bindings = ocpn.get_enabled_silent_transition_bindings(&current_state);
 
             //execute all enabled silent transitions
-            for (trans, enabled_binding) in enabled_silent_bindings {
-                
-                //let mut enabled_binding = (trans.clone(), HashMap::from([(object_type.clone(), HashSet::from([object.clone()]))]));
-
-                //execute binding
-                let state = ocpn.execute_binding_(&mut (trans, enabled_binding), &current_state); //TODO check func
-
-                //enqueue resulting state
-                //only push if state new or binding len is different
-                let hashed_next_state = hash_marking(&state, &ocpn.object_to_type);
-
-
-                if seen_markings.contains(&(hashed_next_state.clone(), current_binding.len())){
-                    //print!(".");
-                    continue;
+            for (trans, enabled_comb_binding) in enabled_silent_bindings {
+                //DEBUG / TEST /
+                if enabled_comb_binding.len() > 1 {
+                    panic!("To many object types")
                 }
-                //println!("------- \n \n -------");
-                //println!("CON: ");
-                //print_marking(&DEBUG_states.iter().map(|(s, _)| s).collect::<Vec<&Marking>>());
-                //println!("\nIN: {:?}", state);
+                // one binding can have multiple objects => iterate over them
+                // should only be one object type, but can have multiple objects
+                for (object_type, objects) in enabled_comb_binding.iter() {
+                    for object in objects {
+                        let mut enabled_binding = (trans.clone(), HashMap::from([(object_type.clone(), HashSet::from([object.clone()]))]));
 
-                //DEBUG_states.push((state.clone(), current_binding.clone()));
-                seen_markings.insert((hashed_next_state.clone(), current_binding.len()));
-                state_queue.push_back((state.clone(), temp.1, hash_marking(&state, &ocpn.object_to_type)));
-                
-                
+                        //execute binding
+                        let state = ocpn.execute_binding_(&mut enabled_binding, &current_state); //TODO check func
+
+                        //enqueue resulting state
+                        //only push if state new or binding len is different
+                        let hashed_next_state = hash_marking(&state, &ocpn.object_to_type, &Some(current_binding.len() as u32));
+
+
+                        if seen_markings.contains(&hashed_next_state.clone()){
+                            //print!(".");
+                            continue;
+                        }
+                        //println!("------- \n \n -------");
+                        //println!("CON: ");
+                        //print_marking(&DEBUG_states.iter().map(|(s, _)| s).collect::<Vec<&Marking>>());
+                        //println!("\nIN: {:?}", state);
+
+                        //DEBUG_states.push((state.clone(), current_binding.clone()));
+                        seen_markings.insert(hashed_next_state);
+                        state_queue.push_back((state, temp.1));
+                    }
+                }
             }
         }
     }
@@ -526,7 +606,9 @@ pub fn get_enabled_model_activities_for_event(
     //if !prev_replayed_event_map.contains_key(event_id) {
     //    prev_replayed_event_map.insert(event_id.clone(), Some(prev_replayed_event_map_));
     //}
-
+    
+    drop(seen_markings);
+    
     result
 }
 
@@ -568,7 +650,6 @@ fn get_initial_marking(
             }
         }
     }
-    
     initial_marking
 }
 

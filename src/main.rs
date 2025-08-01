@@ -11,7 +11,7 @@ use process_mining::OCEL;
 use process_mining::ocel::ocel_struct::OCELEvent;
 use ron::ser::PrettyConfig;
 use serde::{Serialize, Deserialize};
-use crate::structs_for_ocpm::OCPN;
+use crate::structs_for_ocpm::{hash_marking, Marking, OCPN};
 use crate::utils::{is_superset, print_contexts};
 
 mod enabled_log_act;
@@ -20,6 +20,13 @@ mod structs_for_ocpm;
 mod test;
 mod utils;
 mod enabled_model_act;
+
+//better allocator for performance
+extern crate mimalloc;
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+
 
 const NUMBER_OF_ITERATIONS: u32 = 1;
 const VERSION_NAME: &str = "v2_multi-threaded +";
@@ -48,6 +55,10 @@ fn main() {
     //ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
 
     //test_running_example();
+    
+    
+    
+    
 
     run();
     //test::test_ocpn();
@@ -154,7 +165,9 @@ fn test_running_example(){
     test_context_map(&context_map);
 
     test_enabled_log_activities(&enabled_log_activities, ocpn.clone());
-    test_enabled_model_activities(&enabled_model_activities, ocpn.clone());
+    test_enabled_model_activities(&enabled_model_activities.iter()
+        .map(|(k, v)| (k.clone(), v.iter().cloned().collect()))
+        .collect(), ocpn.clone());
 
     let (fitness, precision) = evaluator::apply(ocel, ocpn.clone());
 

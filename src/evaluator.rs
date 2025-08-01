@@ -4,13 +4,16 @@ use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 use counter::Counter;
 use process_mining::ocel::ocel_struct::OCELEvent;
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use crate::{enabled_log_act, LOG_MODEL, NUMBER_OF_ITERATIONS, VERSION_NAME};
 use crate::enabled_model_act;
 use crate::structs_for_ocpm::OCPN;
 use crate::utils::{evaluate_runtime, save_analytics};
 
 //calc fitness and precision for given OCEL and OCPN
-pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
+pub fn apply(mut ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
+    
+    
     let mut starting_times: Vec<Instant> = Vec::<Instant>::new();
     #[cfg (feature = "stats")]{
         println!("######## Evaluating with statistics ########");
@@ -101,7 +104,12 @@ pub fn apply(ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
 }
 
 
-fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activities: &HashMap<String,HashSet<String>>, enabled_model_activities: &HashMap<String, HashSet<String>>) -> (f64,f64){
+fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activities: &HashMap<String,HashSet<String>>, enabled_model_activities: &FxHashMap<String, FxHashSet<String>>) -> (f64,f64){
+    #[cfg(feature = "progress-percentage")]{
+        println!("Calculating fitness and precision");
+    }
+
+
     let mut fitness: f64 = 0.0;
     let mut precision: f64 = 0.0;
 
@@ -155,7 +163,10 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
     en_log_vec.sort_by(|(a_id, _), (b_id, _)| {
         a_id.parse::<u32>().unwrap_or(0).cmp(&b_id.parse::<u32>().unwrap_or(0))
     });
-    let mut en_model_vec: Vec<(String, &HashSet<String>)> = enabled_model_activities.iter().map(|(id, acts)| (id.clone(), acts)).collect();
+    let mut en_model_vec: Vec<(String, HashSet<String, FxBuildHasher>)> =
+        enabled_model_activities.iter()
+            .map(|(id, acts)| (id.clone(), acts.clone()))
+            .collect();
     en_model_vec.sort_by(|(a_id, _), (b_id, _)| {
         a_id.parse::<u32>().unwrap_or(0).cmp(&b_id.parse::<u32>().unwrap_or(0))
     });
@@ -181,8 +192,8 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
         
          */
         
-        
-        if en_model_act.is_empty() || en_model_act.intersection(en_log_act).count() == 0 {
+        let en_log_act_Fx:FxHashSet<String> = en_log_act.into_iter().cloned().collect();
+        if en_model_act.is_empty() || en_model_act.intersection(&en_log_act_Fx).count() == 0 {
 
             if en_model_act.is_empty(){
                 println!("LEN: event id {} not found in enabled model activities!!!", event_id);
@@ -196,10 +207,10 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
         }
         
         precisions.push(
-            en_log_act.intersection(en_model_act).count() as f64 / en_model_act.len() as f64
+            en_model_act.intersection(&en_log_act_Fx).count() as f64 / en_model_act.len() as f64
         );
         fitnesses.push(
-            en_log_act.intersection(en_model_act).count() as f64 / en_log_act.len() as f64
+            en_model_act.intersection(&en_log_act_Fx).count() as f64 / en_log_act.len() as f64
         );
     }
     
