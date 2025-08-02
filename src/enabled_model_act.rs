@@ -62,12 +62,14 @@ pub fn get_enabled_model_activities_(
         //sort by number of events in context
         context_vec.sort_by_key(|(_, events)| -(events.len() as isize)); // TODO add "-" if needed
         
+        
+
         //sort by prefix length
-        context_vec.sort_by_key(|(_, events)| 
-            -(events.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>() as isize) //first: context with largest combined prefix length
-        );
-        let temp = context_vec.pop().unwrap();
-        context_vec.insert(0, temp); //move first element to end of vec => kontext for first events should not be last in queue
+        //context_vec.sort_by_key(|(_, events)|
+        //    -(events.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>() as isize) //first: context with largest combined prefix length
+        //);
+        //let temp = context_vec.pop().unwrap();
+        //context_vec.insert(0, temp); //move first element to end of vec => kontext for first events should not be last in queue
         println!("{:?}", context_vec[0].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
         println!("{:?}", context_vec[1].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
         println!("{:?}", context_vec[2].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
@@ -75,16 +77,16 @@ pub fn get_enabled_model_activities_(
         println!("{:?}", context_vec[4].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
         println!("{:?}", context_vec[5].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
         println!("{:?}", context_vec.last().unwrap().1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        
-        
+
+
         println!("->->->->{:?}", id_presets["12906"]);
         for (pos, cont) in context_vec.iter().enumerate(){
             if cont.1.contains("12906") {
                 println!("Found context for event 12906: {:?} at index {} of {}", cont, pos, context_vec.len());
             }
         }
-        
-        
+
+
         //test
         let progress = Arc::new(AtomicU16::new(0));
         let nested_pool = rayon::ThreadPoolBuilder::new().num_threads(9).build().unwrap();
@@ -96,10 +98,10 @@ pub fn get_enabled_model_activities_(
          */
 
 
-        context_vec.par_chunks(2).for_each(|chunk| {
-            chunk.iter().for_each(|(ctxt, events)| {
-                
-                
+        //context_vec.par_chunks(15).for_each(|chunk| {
+            //chunk.iter().for_each(|(ctxt, events)| {
+        context_vec.par_iter().for_each(|(ctxt, events)| {
+
 
                 #[cfg(feature = "progress-percentage")]{
 
@@ -122,18 +124,19 @@ pub fn get_enabled_model_activities_(
                 }
                 let mut result: FxHashSet<String> = FxHashSet::default();
                 //TODO: check if nested parallelism is possible here
-                
+
                 //test nested threading
                 //use nested threading if other threads are finished (often happens after 99%)
                 if progress.load(Ordering::Relaxed) >= 99{
-                    
+
                     let _result: Vec<FxHashSet<String>> = nested_pool.install(||{
                         events
                             .par_iter()
                             .map(|event_id| {
-                                println!("starting event: {}", event_id);
+                                //println!("starting event: {}", event_id);
 
-                                let temp = get_enabled_model_activities_for_event(
+                                //let temp =
+                                    get_enabled_model_activities_for_event(
                                     event_id,
                                     contexts.get(event_id).unwrap(),
                                     bindings.get(event_id).unwrap(),
@@ -143,17 +146,18 @@ pub fn get_enabled_model_activities_(
                                     //previsous_event_map.get(event_id).unwrap().clone(),
                                     //&mut prev_replayed_event_map,
                                     //&local_copy
-                                );
-                                
-                                println!("finished event: {}", event_id);
-                                temp
+                                )
+                                    //;
+
+                                //println!("finished event: {}", event_id);
+                                //temp
                             })
                             .collect()
                     });
                     for res in _result{
                         result.extend(res);
                     }
-                    
+
                 }else{
                     for event_id in *events {
                         //println!("{}", event_id);
@@ -164,7 +168,7 @@ pub fn get_enabled_model_activities_(
                             .iter()
                             .map(|r| (r.key().clone(), r.value().clone()))
                             .collect();
-    
+
                          */
 
 
@@ -196,7 +200,7 @@ pub fn get_enabled_model_activities_(
 
 
             });
-        });
+        //});
 
 
 
@@ -460,9 +464,7 @@ pub fn get_enabled_model_activities_for_event(
         //if binding sequence is fully replayed in the current state: no bindinng is left in the sequence
         if current_binding.is_empty() {
 
-            if state_queue.is_empty() {
-                //println!("state queue empthy event: {}", event_id);
-            }
+
 
             //if binding sequence is fully replayed in this state add it to the prev_replayed_event_map_
             //prev_replayed_event_map_.push(current_state.clone());
