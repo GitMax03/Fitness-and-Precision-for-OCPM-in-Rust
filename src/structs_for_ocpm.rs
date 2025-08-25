@@ -14,6 +14,7 @@ use petgraph::Graph;
 use std::fs::File;
 use std::io::Write;
 use std::ops::Index;
+use ahash::AHasher;
 use petgraph::graph::DiGraph;
 use petgraph::visit::NodeRef;
 use rayon::in_place_scope;
@@ -22,6 +23,7 @@ use serde_json::json;
 
 //opotimuatiohn
 use nohash_hasher::BuildNoHashHasher;
+use crate::MDFA::get_object_type_of_abstracted;
 
 //OCPN
 #[derive(Clone)]
@@ -431,7 +433,7 @@ impl OCPN {
 
                             let matching_count = objects.iter()
                                 .filter(|obj_id| {
-                                    let matches = *self.object_to_type.get(*obj_id).unwrap() == object_type;
+                                    let matches = *self.object_to_type.get(*obj_id).unwrap_or(&get_object_type_of_abstracted(obj_id)) == object_type;
                                     if matches {
                                         involved_objects.push(obj_id.clone().to_string());
                                     }
@@ -575,7 +577,7 @@ impl OCPN {
                             break
                         }else{
                             for object in temp_marking.clone().get(input).unwrap().iter(){
-                                involved_objects.entry(self.object_to_type.get(object).unwrap().clone()).or_insert(HashSet::new()).insert(object.clone()); //add object to involved objects
+                                involved_objects.entry(self.object_to_type.get(object).unwrap_or(&get_object_type_of_abstracted(object)).clone()).or_insert(HashSet::new()).insert(object.clone()); //add object to involved objects
                                 if temp_marking.get(input).unwrap().is_empty() {
                                     temp_marking.remove(input); //if place is empty, remove it from the marking
                                 }
@@ -656,7 +658,7 @@ impl OCPN {
 
     //---------------- EXECUTION --------------------------------
 
-    pub fn execute_binding_(&self, binding: &mut (String, HashMap<String, HashSet<String>>), marking: &Marking) -> Marking{
+    pub fn execute_binding_(&self, binding: &(String, HashMap<String, HashSet<String>>), marking: &Marking) -> Marking{
         ///binding must be executable
         //Binding: (activity, [object_types: object_ids])
         let mut res_marking = marking.clone(); //clone marking to modify it
@@ -781,7 +783,13 @@ pub struct Arc {
 
 pub type Marking = HashMap<String, HashSet<String>>; //place id, [object ids, -DELETED: Object type]
 
-pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>, additional: &Option<u32>) -> u64 {
+
+
+
+///hash marking with no regard to object ids but to object types and multiplicity of objects
+/// => abstracts the marking, then hashes it
+
+pub fn hash_marking_(marking: &Marking, object_to_type: &HashMap<String, String>, additional: &Option<u32>) -> u64 {
     //TODO: assumption: 2 objects with same id in the same place are not allowed => are only considered as one object is solved by HashSet?
     
     let mut hasher = FxHasher::default(); //faster better hasher
@@ -800,6 +808,7 @@ pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>,
                 *type_counts.entry(obj_type).or_insert(0) += 1;
             }
         }
+        
 
         
         for (obj_type, count) in type_counts {
@@ -813,6 +822,38 @@ pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>,
         additional_value.hash(&mut hasher);
     }
 
+    hasher.finish()
+}
+
+ 
+pub fn hash_marking(marking: &Marking, object_to_type: &HashMap<String, String>, additional: &Option<u32>) -> u64 {
+    if additional.is_some() {
+        return hash_marking_(marking, object_to_type, additional);
+    }else{
+        return hash_markings(&vec![marking.clone()], object_to_type);
+    }
+}
+
+pub fn hash_markings(markings: &Vec<Marking>, object_to_type: &HashMap<String, String>) -> u64{
+    /*
+    if markings.len() <= 1{
+        //if there is only one Marking use normal Hasher
+        return hash_marking(&markings[0], object_to_type, &None);
+    }
+    
+     */
+    
+    
+    let mut hasher = FxHasher::default();
+    
+    let mut hashed = markings.iter()
+        .map(|marking| hash_marking_(marking, object_to_type, &None))
+        .collect::<Vec<u64>>();
+    
+    //sort for consistent hashing
+    hashed.sort();
+    
+    hashed.hash(&mut hasher);
     hasher.finish()
 }
 

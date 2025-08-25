@@ -5,7 +5,7 @@ use std::time::Instant;
 use counter::Counter;
 use process_mining::ocel::ocel_struct::OCELEvent;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
-use crate::{enabled_log_act, LOG_MODEL, NUMBER_OF_ITERATIONS, VERSION_NAME};
+use crate::{enabled_log_act, DEBUG_full, DEBUG_partial, DEBUG_LEN, LOG_MODEL, NUMBER_OF_ITERATIONS, VERSION_NAME};
 use crate::enabled_model_act;
 use crate::structs_for_ocpm::OCPN;
 use crate::utils::{evaluate_runtime, save_analytics};
@@ -197,6 +197,7 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
 
             if en_model_act.is_empty(){
                 println!("LEN: event id {} not found in enabled model activities!!!", event_id);
+                DEBUG_LEN.write().unwrap().insert(event_id.clone());
             }else{
                 println!("INTER: event id {} not found in enabled model activities!", event_id);
             }
@@ -222,6 +223,15 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
         //println!("precisions is empty");
         return (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, 0.0);
     }
+    
+    println!("\nDEBUG:-----------------------");
+    println!("full events:{:?} \n partial events:{:?} \n LEN:{:?}", DEBUG_full.read().unwrap().len(), DEBUG_partial.read().unwrap().len(), DEBUG_LEN.read().unwrap().len());
+    //println!("Intersection full/len: {:?}\n", DEBUG_full.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).cloned().collect::<Vec<String>>());
+    //println!("Intersection partial/len: {:?}\n", DEBUG_partial.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).cloned().collect::<Vec<String>>());
+    //println!("Intersection full/partial: {:?}\n------\n", DEBUG_full.read().unwrap().intersection(&DEBUG_partial.read().unwrap()).cloned().collect::<Vec<String>>());
+    //println!("Intersection full/len length: {}", DEBUG_full.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).count());
+    //println!("Intersection partial/len length: {}", DEBUG_partial.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).count());
+    
     (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, precisions.iter().sum::<f64>() / precisions.len() as f64)
     
 }

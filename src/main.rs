@@ -5,6 +5,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use std::sync::RwLock;
 use std::task::Context;
 use counter::Counter;
 use process_mining::OCEL;
@@ -14,12 +15,18 @@ use serde::{Serialize, Deserialize};
 use crate::structs_for_ocpm::{hash_marking, Marking, OCPN};
 use crate::utils::{is_superset, print_contexts};
 
+use ahash::{AHashMap, AHashSet, AHasher};
+use crate::MDFA::{abstract_marking_with_map, get_all_rename_maps};
+
 mod enabled_log_act;
 mod evaluator;
 mod structs_for_ocpm;
 mod test;
 mod utils;
 mod enabled_model_act;
+
+mod MDFA;
+
 
 //better allocator for performance
 extern crate mimalloc;
@@ -49,17 +56,54 @@ not replayble events: in current model:
 
  */
 
+use once_cell::sync::Lazy;
+static DEBUG_full: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| RwLock::new(HashSet::new()));
+static DEBUG_partial: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| RwLock::new(HashSet::new()));
+static DEBUG_LEN: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| RwLock::new(HashSet::new()));
+static DEBUG_events: Lazy<RwLock<HashSet<String>>> = Lazy::new(|| RwLock::new(HashSet::new()));
+
+
 fn main() {
 
     //let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
     //ocpn.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/vis.dot".to_string());
 
-    //test_running_example();
-    
-    
-    
-    
+    test::test_MDFA();
+    //return;
 
+    use crate::MDFA::MDFA;
+    let marking = HashMap::from([
+        ("offer5".to_string(), HashSet::from(["Offer_212771240".to_string()])),
+        ("offer1".to_string(), HashSet::from(["Offer_1933060811".to_string()])),
+        ("application2".to_string(), HashSet::from(["Application_1971576090".to_string()])),
+        ("application25".to_string(), HashSet::from(["Application_1971576091".to_string()])),
+    ]);
+
+    let object_to_type = HashMap::from([
+        ("Offer_212771240".to_string(), "offer".to_string()),
+        ("Offer_1933060811".to_string(), "offer".to_string()),
+        ("Application_1971576090".to_string(), "application".to_string()),
+        ("Application_1971576091".to_string(), "application".to_string()),
+    ]);
+
+    let mut mdfa = MDFA::new(object_to_type.clone());
+
+    let rename_maps = get_all_rename_maps(&marking, &object_to_type);
+
+    for map in rename_maps {
+        let mut tempmarking = marking.clone();
+        abstract_marking_with_map(&mut tempmarking, &map);
+        println!("maps: {:?} \n", tempmarking);
+    }
+
+    test_running_example();
+
+
+
+    DEBUG_events.write().unwrap().clear();
+    DEBUG_partial.write().unwrap().clear();
+    DEBUG_full.write().unwrap().clear();
+    DEBUG_LEN.write().unwrap().clear();
     run();
     //test::test_ocpn();
 
@@ -77,8 +121,8 @@ fn main() {
 }
 
 fn get_ocel_ocpn() -> (OCEL, OCPN) {
-
-    match 3 {
+    //1 runnung example, 3: changing:intermediate, 4: full changing
+    match 4{
         1 => {
             // Load OCEL and OCPN from files or create them
             let ocel = test::get_test_ocel();
@@ -98,6 +142,11 @@ fn get_ocel_ocpn() -> (OCEL, OCPN) {
         },
         3 => {
             let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/intermediate.jsonocel");
+            let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
+            (ocel, ocpn)
+        },
+        4 => {
+            let ocel = utils::import_ocel_from_jsonocel("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/changing_ocel.jsonocel");
             let ocpn = utils::import_from_json("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/Data/ocpn_intermediate_changing.json");
             (ocel, ocpn)
         },

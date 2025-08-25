@@ -25,6 +25,9 @@ dashmap = "7.0.0-rc2"
 mimalloc = { version = "0.1.47" }
 rustc-hash = "2.1.1"
 nohash-hasher = "0.2.0"
+ahash = "0.8.12"
+itertools = "0.14.0"
+once_cell = "1.21.3"
 
 [features]
 progress = ["indicatif"]

@@ -1,0 +1,15 @@
+digraph {
+    0 [ label = "--------- 6 ---------\l14810208573711157658: [{\"pl8\": {\"baggage:0\", \"baggage:1\"}, \"pl9\": {\"plane:0\"}}]\l\l-------------------\l14810208573711157658: {\"Pick up @ dest\", \"Clean\"}" shape = box; style = filled; color = gray]
+    1 [ label = "--------- 0 ---------\l8343240548656258505: [{\"pl2\": {\"baggage:0\"}}]\l4803022694220892182: [{\"pl1\": {\"plane:0\"}}]\l14189718603024318399: [{\"pl2\": {\"baggage:0\", \"baggage:1\"}, \"pl1\": {\"plane:0\"}}]\l\l-------------------\l8343240548656258505: {\"Check-in\"}\l4803022694220892182: {\"Fuel plane\"}" shape = box; style = filled; color = gray]
+    2 [ label = "--------- 2 ---------\l5486733230092231109: [{\"pl2\": {\"baggage:1\"}, \"pl3\": {\"plane:0\"}, \"pl4\": {\"baggage:0\"}}]\l\l-------------------" shape = box; style = filled; color = gray]
+    3 [ label = "--------- 3 ---------\l5982849832003936559: [{\"pl3\": {\"plane:0\"}, \"pl4\": {\"baggage:1\", \"baggage:0\"}}]\l\l-------------------\l5982849832003936559: {\"Load cargo\"}" shape = box; style = filled; color = gray]
+    4 [ label = "--------- 5 ---------\l4924911898824353339: [{\"pl7\": {\"plane:0\"}, \"pl6\": {\"baggage:0\", \"baggage:1\"}}]\l\l-------------------\l4924911898824353339: {\"Unload\", \"Pick up @ dest\"}" shape = box; style = filled; color = gray]
+    5 [ label = "--------- 1 ---------\l5288352141728498632: [{\"pl2\": {\"baggage:0\", \"baggage:1\"}, \"pl3\": {\"plane:0\"}}]\l\l-------------------" shape = box; style = filled; color = gray]
+    6 [ label = "--------- 4 ---------\l15415895517719741651: [{\"pl5\": {\"plane:0\"}, \"pl6\": {\"baggage:0\", \"baggage:1\"}}]\l\l-------------------\l15415895517719741651: {\"Lift off\", \"Pick up @ dest\"}" shape = box; style = filled; color = gray]
+    1 -> 5 [ label = "Fuel plane" ]
+    5 -> 2 [ label = "Check-in" ]
+    2 -> 3 [ label = "Check-in" ]
+    3 -> 6 [ label = "Load cargo" ]
+    6 -> 4 [ label = "Lift off" ]
+    4 -> 0 [ label = "Unload" ]
+}

@@ -1,12 +1,14 @@
-use crate::structs_for_ocpm::{hash_marking, print_marking, Marking, OCPN};
+use crate::structs_for_ocpm::{hash_marking, hash_markings, print_marking, Marking, OCPN};
 use counter::Counter;
 use process_mining::ocel::ocel_struct::OCELEvent;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::format;
+use std::fs::File;
+use std::io::Write;
 use std::task::Context;
 use process_mining::OCEL;
 use rayon::prelude::*;
-use crate::NUMBER_OF_ITERATIONS;
+use crate::{DEBUG_events, DEBUG_full, DEBUG_partial, NUMBER_OF_ITERATIONS};
 use crate::utils::{equals};
 use dashmap::DashMap;
 use std::sync::{Arc, RwLock};
@@ -16,6 +18,7 @@ use process_mining::event_log::Event;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use rustc_hash::FxHashSet;
 use nohash_hasher::BuildNoHashHasher;
+use crate::MDFA::{abstract_binding_sequnece_with_map, abstract_marking_map, abstract_marking_with_map, compare_marking_multiplicity, get_all_rename_maps, State, MDFA};
 
 static MULTITHREADING: bool = true; //if true, use multithreading for enabled model activities calculation
 
@@ -32,6 +35,24 @@ pub fn get_enabled_model_activities_(
     //println!("Contexts map: {:?}", contexts_map);
 
 
+    //DEBUG
+    //check if there is any event present in 2 differnet contexts
+    let mut event_context_check: HashMap<String, u64> = HashMap::new(); //event_id, context hash
+    for (context_hash, events) in context_event_map.iter() {
+        for event in events {
+            if let Some(existing_context) = event_context_check.get(event) {
+                if *existing_context != *context_hash {
+                    println!("Event {} is present in multiple contexts: {} and {}", event, existing_context, context_hash);
+                }else{
+                    println!("Event {} is already present in multiple contexts: {}", event, context_hash);
+                }
+            } else {
+                event_context_check.insert(event.clone(), *context_hash);
+            }
+        }
+    }
+    let mut DEBUG_event_list: RwLock<HashSet<String>> = RwLock::new(HashSet::new());
+
     //TODO: idear:
     /*
     if binding sequence is fully replayed, and statequeu ist very long,
@@ -47,6 +68,10 @@ pub fn get_enabled_model_activities_(
     //map of event ids and Markings of all states that replayed the binding sequence of the event
     //let mut prev_replayed_event_map: DashMap<String, RwLock<Vec<HashMap<String, HashSet<String>>>>> = DashMap::new(); //event_id, Vec<Marking>
     let mut prev_replayed_event_map = Arc::new(DashMap::<String, Option<Vec<Marking>>>::with_shard_amount(128)); //event_id, Vec<Marking>
+    
+    //MDFA approach
+    let mut mdfa:MDFA = MDFA::new(ocpn.object_to_type.clone());
+    mdfa.add_state(Some("0".to_string()), true); //initial state
     
     //for DEBUG
     if MULTITHREADING {
@@ -70,21 +95,7 @@ pub fn get_enabled_model_activities_(
         //);
         //let temp = context_vec.pop().unwrap();
         //context_vec.insert(0, temp); //move first element to end of vec => kontext for first events should not be last in queue
-        println!("{:?}", context_vec[0].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        println!("{:?}", context_vec[1].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        println!("{:?}", context_vec[2].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        println!("{:?}", context_vec[3].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        println!("{:?}", context_vec[4].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        println!("{:?}", context_vec[5].1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-        println!("{:?}", context_vec.last().unwrap().1.iter().map(|event| id_presets.get(event).unwrap().len()).sum::<usize>());
-
-
-        println!("->->->->{:?}", id_presets["12906"]);
-        for (pos, cont) in context_vec.iter().enumerate(){
-            if cont.1.contains("12906") {
-                println!("Found context for event 12906: {:?} at index {} of {}", cont, pos, context_vec.len());
-            }
-        }
+        
 
 
         //test
@@ -127,7 +138,7 @@ pub fn get_enabled_model_activities_(
 
                 //test nested threading
                 //use nested threading if other threads are finished (often happens after 99%)
-                if progress.load(Ordering::Relaxed) >= 99{
+                if false && progress.load(Ordering::Relaxed) >= 99 && false{
 
                     let _result: Vec<FxHashSet<String>> = nested_pool.install(||{
                         events
@@ -146,6 +157,7 @@ pub fn get_enabled_model_activities_(
                                     //previsous_event_map.get(event_id).unwrap().clone(),
                                     //&mut prev_replayed_event_map,
                                     //&local_copy
+                                    &mdfa,
                                 )
                                     //;
 
@@ -171,6 +183,11 @@ pub fn get_enabled_model_activities_(
 
                          */
 
+                        if DEBUG_event_list.read().unwrap().contains(&event_id.clone()) {
+                            println!(" ->->->->-> Event {} calculated twice!!!!!!", event_id);
+                        }else{
+                            DEBUG_event_list.write().unwrap().insert(event_id.clone());
+                        }
 
                         result.extend(get_enabled_model_activities_for_event(
                             event_id,
@@ -182,6 +199,7 @@ pub fn get_enabled_model_activities_(
                             //previsous_event_map.get(event_id).unwrap().clone(),
                             //&mut prev_replayed_event_map,
                             //&local_copy
+                            &mdfa,
                         ));
                     }
                 }
@@ -213,6 +231,15 @@ pub fn get_enabled_model_activities_(
                 results.insert(event.clone(), en_act_for_context.get(cntxt).unwrap().clone());
             }
         }
+        //println!("mdfa: {:#?}", mdfa.states);
+        DEBUG_event_list.write().unwrap().clear();
+        println!("CLEAR");
+
+        //save eog to vis.fot NEVER DO THIS!
+        //mdfa.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/MDFA_vis.dot".to_string());
+
+        
+        
         
         results
     }else{
@@ -252,6 +279,7 @@ pub fn get_enabled_model_activities_(
                         //previsous_event_map.get(event_id).unwrap().clone(),
                         //&mut prev_replayed_event_map,
                         //&local_copy
+                        &mdfa,
                     ));
                 }
     
@@ -301,20 +329,27 @@ pub fn get_enabled_model_activities_for_event(
     //previous_event: String,
     //prev_replayed_event_map: &mut Arc<DashMap<String, Option<Vec<Marking>>>>,
     //local_map: &HashMap<String, Option<Vec<Marking>>>, //local map of prev_replayed_event_map to avoid borrowing issues
+    mdfa_: &MDFA,
     
 ) -> FxHashSet<String> {
 
+    if !DEBUG_events.read().unwrap().contains(event_id) {
+        DEBUG_events.write().unwrap().insert(event_id.clone());
+    }else{
+        println!("Event {} calculated twice!", event_id);
+    }
+
     let mut binding = binding_.clone(); //clone binding to avoid borrowing issues
     let original_binding_len = binding.len();
-    
-    
+
+
 
     //DEBUG
     //if !vec!["7498".to_string(), ].contains(event_id) { return HashSet::new(); }
     //let event = id_to_event.get(event_id).unwrap();
-    
-    
-    
+
+
+
     //--------------------------------------------
     //replay binding sequence:
     //queue of states: queue of (Marking: <Place id, [object_ids]>, index of binding sequence, Hash of marking)
@@ -336,57 +371,15 @@ pub fn get_enabled_model_activities_for_event(
             }
         }
     }
-    //add objects from event 
+    //add objects from event
     for relation in id_to_event.get(event_id).unwrap().relationships.iter() {
 
         let object_type = ocpn.object_to_type.get(&relation.object_id).unwrap();
         //add object to needed_objects
         needed_objects.entry(object_type.clone()).or_insert_with(HashSet::new).insert(relation.object_id.clone());
     }
-    //if previos event was already replayed, use the map to get the markings as initial state
-    'cache_init_state: {
-        //if let Some(markings) = local_map.get(&previous_event) {
-        if false{
-        
-        //problem: sometimes the previous event does not have all needed objects
-        //TODO: fix: insert the missing objects into the initial places:
-        //TODO: Too much overhead?
-        //quickfix: only use when all objects are present in the first marking (if fist marking contains it, all other markings will contain it too)
-        
-        //test:
-        let markings = Some(vec![Marking::new(); 2]);
-            
-        //let mut extend_marking: HashMap<String, HashSet<String>> = HashMap::new(); //place_id: objects
-        let first_marking = markings.clone().unwrap().first().unwrap().clone();
-        //check first marking for needed objects
-        for obj in needed_objects.values().flat_map(|objs| objs) {
-            if !first_marking.values().any(|v| v.contains(obj)) {
-                //TODO quickfix:
-                let initial_marking = get_initial_marking(
-                    event_id,
-                    all_object_types,
-                    &binding,
-                    context,
-                    id_to_event,
-                    &needed_objects,
-                    ocpn,
-                );
 
-                state_queue.push_back((initial_marking.clone(), 0)); //TODO: clone just for debug
-                //println!("we breaking free... saaaawing ..... flieeeeeing");
-                break 'cache_init_state; //break if statement
-            }
-        }
-        
-        for marking in markings.clone().unwrap().iter() {
-            //add marking to state queue
-            state_queue.push_back((marking.clone(), original_binding_len -1 ));
-        }
-        //println!("Using previous replayed markings for event: {}; skipped binding seq. len: {}", event_id, original_binding_len - 1);
-        //println!("State queue: {:?}\n", state_queue);
-        
-        
-    }else{
+
 
         let initial_marking = get_initial_marking(
             event_id,
@@ -399,19 +392,152 @@ pub fn get_enabled_model_activities_for_event(
         );
 
         state_queue.push_back((initial_marking.clone(), 0)); //TODO: clone just for debug
-
-    }}
-    let mut prev_replayed_event_map_: Vec<Marking> = vec![];
     
 
 
     //REPLAY -------
 
+    /*
+    MDFA:
+     - to complex to start in not initial places?
+     */
 
+    //MDFA:
+    //check if initial marking is already in MDFA
+    //TODO: quick: cloned fix for thread safety, could be optimized later
+    //TODO: could also try to start somewhere in MDFA, but could lead to extreme memory usage
+    let mdfa = mdfa_;
+    //try each initial marking
+    let initial_state = mdfa.initial_states.read().unwrap().clone();
+    //DEBUG
+    if true{
+        for initial_state_mdfa in initial_state.iter() {
+            let initial_state = mdfa.states.get(initial_state_mdfa).unwrap().read().unwrap().clone();
+
+
+            //check if there is a fitting marking in this initial state
+            let initial_markings = initial_state.markings.clone();
+            for marking_init_ in initial_markings.values() {
+
+                //TODO: ASSUMPTION: initial markings are always Vecs with only one element!!!
+                let marking_init = marking_init_.get(0).unwrap();
+
+                if !compare_marking_multiplicity(marking_init, &initial_marking, &ocpn.object_to_type) {
+                    //=> Marking can't be abstracted to initial marking
+                    continue;
+                }
+
+                //get all rename maps
+                let rename_maps = get_all_rename_maps(&initial_marking, &ocpn.object_to_type);
+                for map in rename_maps {
+                    //try if this one fits
+                    let abst_marking = abstract_marking_with_map(&initial_marking, &map);
+
+                    //check if marking is equal to initial marking of the mdfa
+                    if marking_init != &abst_marking { continue; }
+
+                    //abstract binding
+                    let abstraceted_binding_seq = abstract_binding_sequnece_with_map(&binding, &map);
+
+                    //try to replay binding on mdfa
+                    let (state, binding_seq, markings) = mdfa.replay_next_state(
+                        initial_state,
+                        &vec![marking_init.clone()],
+                        &abstraceted_binding_seq,
+                    );
+
+                    // if binding sequence is empty, we can directly return the enabled activities
+                    if binding_seq.is_empty() {
+                        //get enabled transitions from state
+                        DEBUG_full.write().unwrap().insert(event_id.clone());
+                        let hash = &hash_markings(&markings, &ocpn.object_to_type);
+                        let mut ret = state.enabled_activities.get(hash)
+                            .unwrap_or(&FxHashSet::default())
+                            .clone();
+                        //println!("full mdfa: {:?} ; event: {:?}", ret, event_id);
+                        
+                        if ret.is_empty(){
+                            //for this Marking the enabled activities are not calculated yet!!!
+                            let enabled_activities: HashSet<String, FxBuildHasher> = markings
+                                .iter()
+                                .flat_map(|marking| {
+                                    ocpn.get_enabled_transitions_from_marking(marking)
+                                        .into_iter()
+                                        .filter_map(|trans| ocpn.transitions.get(&trans).map(|t| t.activity.clone()))
+                                })
+                                .collect();
+                            //println!("Enabled enabled transitions from {:?}", enabled_activities);
+                            mdfa.states.get_mut(&state.id).unwrap().write().unwrap().enabled_activities.insert(hash.clone(), enabled_activities.clone());
+                            ret = enabled_activities;
+                        }
+                        
+                        
+                        return ret;
+
+
+                    }else{
+                        //binding cound not be fully replayed, contine replaying on ocpn
+                        state_queue.clear();
+                        state_queue.extend(
+                            markings.into_iter().map(|m| (m, original_binding_len - binding_seq.len())) //insert the markings of the current state into the queue
+                        );
+                        //println!("parmeters: event_id: {:?}, state_queue: {:?}, binding: {:?}, original_binding_len: {}", event_id, state_queue, binding_seq, original_binding_len );
+                        DEBUG_partial.write().unwrap().insert(event_id.clone());
+                        let ret = replay_marking(ocpn, event_id, &mut state_queue, &mut binding_seq.clone(), original_binding_len, &mdfa, &Some(state));
+                        //println!("partial mdfa {:?} ; event:{:?}", ret, event_id);
+                        return ret;
+                    }
+
+
+
+                }
+            }
+        }
+    }
+    //stateu queue can only have the initial marking
+    //every object in the binding sequence must be in the initial marking
+    let (new_initial_marking, rename_map) = abstract_marking_map(&state_queue.pop_front().unwrap().0, &ocpn.object_to_type);
+    state_queue.push_back((new_initial_marking, 0));
+
+    for (_, ot_objs) in binding.iter_mut() {
+        for (_, objs) in ot_objs.iter_mut() {
+            let mut renamed_objs = HashSet::new();
+            for obj in objs.iter() {
+                if let Some(new_obj) = rename_map.get(obj) {
+                    renamed_objs.insert(new_obj.clone());
+                }
+            }
+            *objs = renamed_objs;
+        }
+    }
+    //println!("parameters: event_id: {:?}, state_queue: {:?}, binding: {:?}, original_binding_len: {}", event_id, state_queue, binding, original_binding_len );
+    let ret = replay_marking(ocpn, event_id, &mut state_queue, &mut binding, original_binding_len, &mdfa, &None);
+    //println!("normal: {:?} ; event: {:?}", ret, event_id);
+    ret
+}
+
+fn replay_marking(
+    ocpn: &OCPN, 
+    event_id: &String, 
+    state_queue: &mut VecDeque<(Marking, usize)>, 
+    binding: &mut Vec<(String, HashMap<String, HashSet<String>>)>,
+    original_binding_len: usize,
+    mdfa: &MDFA,
+    start_state: &Option<State>,
+
+) -> FxHashSet<String> {
+
+
+
+    //mdfa:
+    //save initial markings to mdfa
 
     //DEBUG
     let mut ITER_COUNT: usize = 0;
-    
+
+    //mdfa
+    let mut next_binding_queue: VecDeque<(Marking, usize)> = VecDeque::new();
+
 
     let mut result: FxHashSet<String> = FxHashSet::default(); //result: list of activities
     // u64 is hashed => NoHashHaser could be used
@@ -428,9 +554,33 @@ pub fn get_enabled_model_activities_for_event(
     let mut current_state: Marking;
     let mut current_binding: Vec<(String, HashMap<String, HashSet<String>>)>;
 
+    //MDFA
+    let mut last_markings: Vec<Marking> = vec![];
+    last_markings.extend(state_queue.iter().map(|(m, _)| m.clone()));
+
+
+    let mut current_mdfa_state = start_state.clone().unwrap_or_else(||{
+        let id = mdfa.initial_states.read().unwrap().iter().next().unwrap().clone();
+        mdfa.states.get(&id).unwrap().read().unwrap().clone()
+    });
+
+    //insert
+    let mut hashed_last_markings = hash_markings(&last_markings, &ocpn.object_to_type);
+    mdfa.states.get_mut(&current_mdfa_state.id).unwrap().write().unwrap().markings.insert(hashed_last_markings, last_markings.clone());
+    last_markings.clear();
 
     //let mut current_binding = binding_.clone(); //current binding sequence to replay
-    while !state_queue.is_empty() {
+    while !state_queue.is_empty() || !next_binding_queue.is_empty() {
+        if state_queue.is_empty() {
+            state_queue.extend(next_binding_queue.clone());
+            next_binding_queue.clear();
+
+            //save markings in mdfa:
+            hashed_last_markings = hash_markings(&last_markings, &ocpn.object_to_type);
+            mdfa.states.get(&current_mdfa_state.id).unwrap().write().unwrap().markings.insert(hashed_last_markings, last_markings.clone());
+            last_markings.clear();
+
+        }
 
         //println!("{}", state_queue.len());
 
@@ -438,14 +588,15 @@ pub fn get_enabled_model_activities_for_event(
         //println!("{}", state_queue.len());
         if state_queue.len() > maximal_queue_size { println!("ABORT! statequeu length for event: {}", event_id); //panic!()? this lenth sould not be reached!
             break;}
-        
-        
+
+
 
         temp = state_queue.pop_front().unwrap();
+        //println!("temp: {:?} for event:{:?}", temp.clone(), event_id);
         current_state = temp.0;
         current_binding = binding[temp.1.clone()..].to_vec();
-        
-        
+        //println!("current_binding: {:?} for event:{}", current_binding, event_id);
+
 
         //DEBUG
         /*
@@ -464,24 +615,24 @@ pub fn get_enabled_model_activities_for_event(
         //if binding sequence is fully replayed in the current state: no bindinng is left in the sequence
         if current_binding.is_empty() {
 
-
-
             //if binding sequence is fully replayed in this state add it to the prev_replayed_event_map_
             //prev_replayed_event_map_.push(current_state.clone());
 
             //add enabled transitions to result
-              result.extend(ocpn.get_enabled_transitions_from_marking(&current_state)
+            result.extend(ocpn.get_enabled_transitions_from_marking(&current_state)
                 .into_iter()
                 .map(|t_id| ocpn.transitions.get(&t_id).unwrap().activity.clone()));
             //println!("Found {} enabled transitions for event: {}", result.len(), event_id);
+
+
         }
         //TODO: idea: if binding not fully replayed -> only move tokens that are nessary  => false?: solent transitions with two inputs?
         //get next enabled binding
-        if let Some(mut next_binding) = ocpn.remove_next_binding_(&mut current_binding, &current_state) {//if a binding is enabled, remove it
+        if let Some(next_binding) = ocpn.remove_next_binding_(&mut current_binding, &current_state) {//if a binding is enabled, remove it
             // there is a binding enabled
-        //DEBUG
+            //DEBUG
             //execute next binding:
-            let next_state = ocpn.execute_binding_(&mut next_binding, &current_state);
+            let next_state = ocpn.execute_binding_(&next_binding, &current_state);
             //enqueue resulting state
             //only push if state new or binding len is different
             let hashed_next_state = hash_marking(&next_state, &ocpn.object_to_type, &Some(current_binding.len() as u32));
@@ -494,43 +645,46 @@ pub fn get_enabled_model_activities_for_event(
             //println!("\nIN: {:?}", next_state);
 
             //if current_binding.len() == 1 {
-                //binding fully replayed, clear queue to calc result
-                //all states are possible traces to replay binding seq. if binding seq. is fully relayed, all other states i.e. traces are false/unessasry
-                //nessasry: current marking = marking directly after binding sequence => go throuh binding sequence backwards and restore all objects (if not already restored)
-                // => clar seen_markings and start looking for enabled transitions again TODO
-                //not applicable => e.g. 2 traces lead to activits, one creates additional object...
-                //state_queue.clear();
-                
-                
-                //DEBUG define marking by hand
-                /*
-                let marking = HashMap::from([
-                    ("offer5".to_string(), HashSet::from(["Offer_212771240".to_string()])),
-                    ("offer1".to_string(), HashSet::from(["Offer_1933060811".to_string()])),
-                    ("application2".to_string(), HashSet::from(["Application_1971576090".to_string()])),
-                    ("application25".to_string(), HashSet::from(["Application_1971576090".to_string()])),
-                ]);
+            //binding fully replayed, clear queue to calc result
+            //all states are possible traces to replay binding seq. if binding seq. is fully relayed, all other states i.e. traces are false/unessasry
+            //nessasry: current marking = marking directly after binding sequence => go throuh binding sequence backwards and restore all objects (if not already restored)
+            // => clar seen_markings and start looking for enabled transitions again TODO
+            //not applicable => e.g. 2 traces lead to activits, one creates additional object...
+            //state_queue.clear();
 
-                 */
-                //state_queue.push_back((marking.clone(), current_binding.clone(), hash_marking(&marking)));
-                
-            //}
-            let marking = Marking::from([
+
+            //DEBUG define marking by hand
+            /*
+            let marking = HashMap::from([
                 ("offer5".to_string(), HashSet::from(["Offer_212771240".to_string()])),
                 ("offer1".to_string(), HashSet::from(["Offer_1933060811".to_string()])),
                 ("application2".to_string(), HashSet::from(["Application_1971576090".to_string()])),
                 ("application25".to_string(), HashSet::from(["Application_1971576090".to_string()])),
             ]);
-            if next_state == marking {
-                println!("Found state: {:?}", next_state);
-            }
+
+             */
+            //state_queue.push_back((marking.clone(), current_binding.clone(), hash_marking(&marking)));
+
+            //}
 
             //DEBUG_states.push((next_state.clone(), current_binding.clone()));
             seen_markings.insert(hashed_next_state);
-            state_queue.push_back((next_state, original_binding_len - current_binding.len()));
+            next_binding_queue.push_back((next_state.clone(), original_binding_len - current_binding.len()));
 
+            //mdfa: save new markings in right state
+            let to_state_id:Option<String> = mdfa.states.get(&current_mdfa_state.id.clone())
+                .unwrap().read().unwrap().
+                next_state.read().unwrap()
+                .get(&next_binding.0).cloned();
+            let to_state = mdfa.add_state(to_state_id.clone(), false).read().unwrap().clone();
+            mdfa.add_arc(Some(current_mdfa_state.id.clone()), next_binding.0, Some(to_state.id.clone()));
 
-//SILENT TRANSITIONS -------
+            current_mdfa_state = to_state;
+
+            //TODO Markings are not added!!!
+            last_markings.push(next_state);
+
+        //SILENT TRANSITIONS -------
         }else{ //there is no enabled binding
 
             /*
@@ -543,7 +697,7 @@ pub fn get_enabled_model_activities_for_event(
             }
             
              */
-            
+
             let mut enabled_silent_bindings:Vec<(String, HashMap<String, HashSet<String>>)> = vec![];
             //check for any enabled silent transitions
             if false{
@@ -603,14 +757,15 @@ pub fn get_enabled_model_activities_for_event(
     if result.is_empty(){
         println!("No enabled transitions found for event: {}", event_id);
     }
-    
+
     //add replaying states to prev_replayed_event_map
     //if !prev_replayed_event_map.contains_key(event_id) {
     //    prev_replayed_event_map.insert(event_id.clone(), Some(prev_replayed_event_map_));
     //}
-    
+
     drop(seen_markings);
-    
+    //mdfa
+    mdfa.states.get_mut(&current_mdfa_state.id).unwrap().write().unwrap().enabled_activities.insert(hashed_last_markings, result.clone());
     result
 }
 

@@ -1,5 +1,6 @@
 extern crate process_mining as pm;
 
+use std::cmp::PartialEq;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::fs::File;
@@ -10,13 +11,14 @@ use std::string::ToString;
 use bimap::BiMap;
 use pm::ocel::ocel_struct::*;
 use chrono::{FixedOffset, TimeZone};
+use itertools::assert_equal;
 use petgraph::adj::NodeIndex;
 use petgraph::graph::DiGraph;
 use petgraph::dot::{Dot, Config};
-
-
+use rustc_hash::FxHashSet;
 use crate::{enabled_log_act, enabled_model_act};
 use crate::enabled_log_act::{construct_event_object_graph, _get_contexts_and_bindings, get_enabled_log_activities, get_event_presets};
+use crate::MDFA::{abstract_marking, abstract_marking_with_map, compare_marking_multiplicity, get_all_rename_maps, MDFA};
 use crate::structs_for_ocpm::*;
 
 
@@ -27,13 +29,157 @@ pub fn get_test_ocel() -> pm::OCEL {
 
 
 
+pub(crate) fn test_MDFA() {
+    
+    println!("MDFA");
+
+    let object_to_type = HashMap::from([
+        ("a1".to_string(), "a".to_string()),
+        ("a2".to_string(), "a".to_string()),
+        ("b1".to_string(), "b".to_string()),
+        ("b2".to_string(), "b".to_string()),
+        ("c1".to_string(), "c".to_string()),
+        ("c2".to_string(), "c".to_string()),
+    ]);
+    
+    let m1 = abstract_marking(&HashMap::from([
+        ("p1".to_string(), HashSet::from(["a1".to_string()])),
+        ("p2".to_string(), HashSet::from(["b1".to_string()])),
+    ]), &object_to_type);
+    let m1_ = HashMap::from([
+        ("p5".to_string(), HashSet::from(["a1".to_string()])),
+        ("p2".to_string(), HashSet::from(["b1".to_string()])),
+    ]);
+    let m1__ = HashMap::from([
+        ("p5".to_string(), HashSet::from(["a1".to_string()])),
+        ("p4".to_string(), HashSet::from(["b1".to_string()])),
+    ]);
+    
+    let m2 = abstract_marking(&HashMap::from([
+        ("p1".to_string(), HashSet::from(["a1".to_string()])),
+        ("p2".to_string(), HashSet::from(["b1".to_string()])),
+        ("px".to_string(), HashSet::from(["c1".to_string()])),
+    ]), &object_to_type);
+    let m2_ = HashMap::from([
+        ("p5".to_string(), HashSet::from(["a1".to_string()])),
+        ("p2".to_string(), HashSet::from(["b1".to_string()])),
+        ("px".to_string(), HashSet::from(["c1".to_string()])),
+    ]);
+    let m2__ = HashMap::from([
+        ("p5".to_string(), HashSet::from(["a1".to_string()])),
+        ("p4".to_string(), HashSet::from(["b1".to_string()])),
+        ("px".to_string(), HashSet::from(["c1".to_string()])),
+    ]);
+    let m2___ = HashMap::from([
+        ("p3".to_string(), HashSet::from(["a1".to_string()])),
+        ("p4".to_string(), HashSet::from(["b1".to_string()])),
+        ("px".to_string(), HashSet::from(["c1".to_string()])),
+    ]);
+    
 
 
+    
+    
+    
+    //create mdfa
+    let mut mdfa = MDFA::new(object_to_type.clone());
+    mdfa.add_state(Some("1".to_string()), true);
+    mdfa.states.get_mut("1").unwrap().write().unwrap().markings.extend(
+        vec![
+            (hash_marking(&m1, &mdfa.object_to_type, &None), vec![m1.clone()]),
+            (hash_marking(&m2, &mdfa.object_to_type, &None), vec![m2.clone()]),
+        ]
+    );
+    mdfa.add_state(Some("2".to_string()), false);
+    mdfa.states.get_mut("2").unwrap().write().unwrap().markings.extend(
+        vec![
+            (hash_marking(&m1, &mdfa.object_to_type, &None), vec![abstract_marking(&mut m1_.clone(), &object_to_type), abstract_marking(&mut m1__.clone(), &object_to_type)]),
+            (hash_marking(&m2, &mdfa.object_to_type, &None), vec![abstract_marking(&mut m2_.clone(), &object_to_type), abstract_marking(&mut m2__.clone(), &object_to_type)]),
+        ]
+    );
+    mdfa.add_state(Some("3".to_string()), false);
+    mdfa.states.get_mut("3").unwrap().write().unwrap().markings.extend(
+        vec![
+            (hash_marking(&m2, &mdfa.object_to_type, &None), vec![abstract_marking(&mut m2___.clone(), &object_to_type)]),
+        ]
+    );
+    mdfa.add_arc(Some("1".to_string()), "A".to_string(), Some("2".to_string()));
+    mdfa.add_arc(Some("1".to_string()), "B".to_string(), Some("3".to_string()));
+    
+    
+    
+    //example binding seq and Marking
+    let t_marking = HashMap::from([
+        ("p1".to_string(), HashSet::from(["a2".to_string()])),
+        ("p2".to_string(), HashSet::from(["b2".to_string()])),
+    ]);
+    let t_binding_seq:Vec<(String, HashMap<String, HashSet<String>>)> = vec![
+        ("C".to_string(), HashMap::from([("a".to_string(), HashSet::from(["a2".to_string()]))])),
+        //("B".to_string(), HashMap::from([("b".to_string(), HashSet::from(["b2".to_string()]))])),
+    ];
+    
+    //enabled Activitiy:
+    let act:FxHashSet<String> = FxHashSet::from(["activity:1".to_string()].into_iter().collect());
+    let temp = mdfa.states.get("2").unwrap().read().unwrap().markings.get(&hash_markings(&vec![m1.clone()], &mdfa.object_to_type)).unwrap().clone();
+    mdfa.states.get_mut("2").unwrap().write().unwrap().enabled_activities.insert(hash_markings(
+        &temp,
+        &mdfa.object_to_type), act.clone());   
+    print!("s");
+    let initial_marking = t_marking.clone();
+    let binding = t_binding_seq.clone();
+    
+    //OCPN
+    
+    
+    
+    println!("{:#?}", mdfa.states);
+    
+    //replay on MDFA
+    for initial_state_mdfa in mdfa.initial_states.read().unwrap().iter() {
+        let initial_state = mdfa.states.get(initial_state_mdfa).unwrap();
 
 
+        //check if there is a fitting marking in this initial state
+        for marking_init_ in initial_state.read().unwrap().markings.values() {
 
+            //TODO: ASSUMPTION: initial markings are always Vecs with only one element!!!
+            let marking_init = marking_init_.get(0).unwrap();
 
+            if !compare_marking_multiplicity(marking_init, &initial_marking, &object_to_type.clone()) {
+                //=> Marking can't be abstracted to initial marking
+                continue;
+            }
 
+            //get all rename maps
+            let rename_maps = get_all_rename_maps(&initial_marking, &object_to_type.clone());
+            for map in rename_maps {
+                //try if this one fits
+                let abst_marking = abstract_marking_with_map(&initial_marking, &map);
+
+                //check if marking is equal to initial marking of the mdfa
+                if marking_init != &abst_marking { continue; }
+                
+                //try to replay binding on mdfa
+                let (state, binding_seq, markings) = mdfa.replay_next_state(
+                    initial_state.read().unwrap().clone(),
+                    &vec![marking_init.clone()],
+                    &binding,
+                );
+                
+                println!("State: {:?}", state);
+                println!("Binding seq: {:?}", binding_seq);
+                println!("H_marking: {:?}, marking: {:?}", hash_markings(&markings, &mdfa.object_to_type), markings);
+                let x = mdfa.states.get("2").unwrap().read().unwrap().markings.get(&hash_markings(&vec![m1.clone()], &mdfa.object_to_type)).cloned().unwrap();
+                println!("State: {:?}; key:{:?}", x.clone(), hash_markings(&vec![m1.clone()], &mdfa.object_to_type));
+                println!("{:?}", x == markings);
+                println!("Enabled Activities: {:?}", state.enabled_activities.get(&hash_markings(&markings, &mdfa.object_to_type)).unwrap_or(&FxHashSet::default()));
+
+            }
+        }
+    }
+
+    println!("hash marking1: {:?};; hashmakrings: {:?}", hash_markings(&vec![m1_, m1__], &mdfa.object_to_type), hash_markings(&vec![m1], &mdfa.object_to_type));
+}
 
 
  fn test_event_presets() {

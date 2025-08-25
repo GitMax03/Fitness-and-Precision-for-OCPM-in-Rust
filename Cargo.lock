@@ -6,15 +6,18 @@ version = 4
 name = "Fitness-and-Precision-for-OCPM"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "bimap",
  "chrono",
  "counter",
  "dashmap",
  "indicatif",
+ "itertools 0.14.0",
  "mimalloc",
  "multiset",
  "multiset-hash",
  "nohash-hasher",
+ "once_cell",
  "petgraph 0.6.5",
  "process_mining",
  "rayon",
