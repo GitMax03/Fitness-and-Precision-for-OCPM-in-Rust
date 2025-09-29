@@ -8,7 +8,7 @@ use std::io::Write;
 use std::task::Context;
 use process_mining::OCEL;
 use rayon::prelude::*;
-use crate::{DEBUG_events, DEBUG_full, DEBUG_partial, NUMBER_OF_ITERATIONS};
+use crate::{ NUMBER_OF_ITERATIONS};
 use crate::utils::{equals};
 use dashmap::DashMap;
 use std::sync::{Arc, RwLock};
@@ -85,9 +85,14 @@ pub fn get_enabled_model_activities_(
         //TODO last 0.2%take very long => maybe use batching?
         let mut context_vec: Vec<_> = context_event_map.iter().collect();
         //sort by number of events in context
-        context_vec.sort_by_key(|(_, events)| -(events.len() as isize)); // TODO add "-" if needed
-        
-        
+        //context_vec.sort_by_key(|(_, events)| -(events.len() as isize)); // TODO add "-" if needed
+        //sort by legth of prefix of each event of each context
+        context_vec.sort_by_key(|(_, events)| ( // TODO add "-" if needed
+            events.iter().map(|event| bindings.get(event).unwrap().len()).sum::<usize>()
+                as isize)); //first: context with most events
+        //println!("{},{},{},{},{}, {}", context_vec[0].1.iter().map(|e| bindings.get(e).unwrap().len()).sum::<usize>(), context_vec[1].1.iter().map(|e| bindings.get(e).unwrap().len()).sum::<usize>(), context_vec[2].1.iter().map(|e| bindings.get(e).unwrap().len()).sum::<usize>(), context_vec[3].1.iter().map(|e| bindings.get(e).unwrap().len()).sum::<usize>(), context_vec[4].1.iter().map(|e| bindings.get(e).unwrap().len()).sum::<usize>(), context_vec.last().unwrap().1.iter().map(|e| bindings.get(e).unwrap().len()).sum::<usize>());
+
+        println!("Calc enabled model activities for {} contexts", context_vec.len());
 
         //sort by prefix length
         //context_vec.sort_by_key(|(_, events)|
@@ -116,13 +121,13 @@ pub fn get_enabled_model_activities_(
 
                 #[cfg(feature = "progress-percentage")]{
 
-                    //print percentage every 5 iterations
+                    //print percentage every 10 iterations
                     if print_lock
                         .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
                         .is_ok()
                     {
                         let finished = finished_events.load(Ordering::Relaxed).clone();
-                        if finished % 5 == 0 {
+                        if finished % 10 == 0 {
                             let percentage = (finished as f64 / id_to_event.len() as f64 * 100.0);
                             progress.store((percentage.round() as usize).try_into().unwrap(), Ordering::Relaxed);
                             println!("Enabled Model act: {:.2}%",
@@ -238,9 +243,9 @@ pub fn get_enabled_model_activities_(
         //save eog to vis.fot NEVER DO THIS!
         //mdfa.export_dot_to_file("/Users/maxbaumeister/RustroverProjects/Fitness-and-Precision-for-OCPM/src/test/MDFA_vis.dot".to_string());
 
-        
-        
-        
+
+
+
         results
     }else{
         //OLD VERSION:
@@ -333,12 +338,7 @@ pub fn get_enabled_model_activities_for_event(
     
 ) -> FxHashSet<String> {
 
-    if !DEBUG_events.read().unwrap().contains(event_id) {
-        DEBUG_events.write().unwrap().insert(event_id.clone());
-    }else{
-        println!("Event {} calculated twice!", event_id);
-    }
-
+    //println!("Event: {}", event_id);
     let mut binding = binding_.clone(); //clone binding to avoid borrowing issues
     let original_binding_len = binding.len();
 
@@ -360,6 +360,15 @@ pub fn get_enabled_model_activities_for_event(
     //get needed objs
     let mut needed_objects: HashMap<String,HashSet<String>> = HashMap::new(); //object_type: objects
 
+    /*
+    for binding__ in binding.iter() {
+        if binding__.0.to_lowercase().contains("goods"){
+            println!("Binding 'goods'");
+        }
+    }
+
+     */
+
     //get all associated objects
     for object_type in all_object_types {
         for (_, objs) in binding.iter() {
@@ -378,6 +387,7 @@ pub fn get_enabled_model_activities_for_event(
         //add object to needed_objects
         needed_objects.entry(object_type.clone()).or_insert_with(HashSet::new).insert(relation.object_id.clone());
     }
+
 
 
 
@@ -427,6 +437,7 @@ pub fn get_enabled_model_activities_for_event(
                     continue;
                 }
 
+
                 //get all rename maps
                 let rename_maps = get_all_rename_maps(&initial_marking, &ocpn.object_to_type);
                 for map in rename_maps {
@@ -449,13 +460,13 @@ pub fn get_enabled_model_activities_for_event(
                     // if binding sequence is empty, we can directly return the enabled activities
                     if binding_seq.is_empty() {
                         //get enabled transitions from state
-                        DEBUG_full.write().unwrap().insert(event_id.clone());
+
                         let hash = &hash_markings(&markings, &ocpn.object_to_type);
                         let mut ret = state.enabled_activities.get(hash)
                             .unwrap_or(&FxHashSet::default())
                             .clone();
                         //println!("full mdfa: {:?} ; event: {:?}", ret, event_id);
-                        
+
                         if ret.is_empty(){
                             //for this Marking the enabled activities are not calculated yet!!!
                             let enabled_activities: HashSet<String, FxBuildHasher> = markings
@@ -470,8 +481,8 @@ pub fn get_enabled_model_activities_for_event(
                             mdfa.states.get_mut(&state.id).unwrap().write().unwrap().enabled_activities.insert(hash.clone(), enabled_activities.clone());
                             ret = enabled_activities;
                         }
-                        
-                        
+
+
                         return ret;
 
 
@@ -482,7 +493,7 @@ pub fn get_enabled_model_activities_for_event(
                             markings.into_iter().map(|m| (m, original_binding_len - binding_seq.len())) //insert the markings of the current state into the queue
                         );
                         //println!("parmeters: event_id: {:?}, state_queue: {:?}, binding: {:?}, original_binding_len: {}", event_id, state_queue, binding_seq, original_binding_len );
-                        DEBUG_partial.write().unwrap().insert(event_id.clone());
+
                         let ret = replay_marking(ocpn, event_id, &mut state_queue, &mut binding_seq.clone(), original_binding_len, &mdfa, &Some(state));
                         //println!("partial mdfa {:?} ; event:{:?}", ret, event_id);
                         return ret;
@@ -547,7 +558,7 @@ fn replay_marking(
     //let mut seen_markings: FastSeenMarkingHash = HashSet::default();
     //TODO is same for all events, so can be moved outside of function
     //let mut cache_enabled_silent_bindings: HashMap<u64, Vec<(String, HashMap<String,HashSet<String>>)>> = HashMap::new(); //cache for enabled silent bindings: <Hash of marking, vec of bindings>
-    let maximal_queue_size = ocpn.places.len().pow(10) * 10;
+    let maximal_queue_size = 5_000_000;
 
     //TODO faster do declar before loop
     let mut temp: (Marking, usize);
@@ -571,6 +582,12 @@ fn replay_marking(
 
     //let mut current_binding = binding_.clone(); //current binding sequence to replay
     while !state_queue.is_empty() || !next_binding_queue.is_empty() {
+
+        if state_queue.len() >= 1_000_000 {
+            println!("ahhhha");
+            state_queue.clear();
+        }
+
         if state_queue.is_empty() {
             state_queue.extend(next_binding_queue.clone());
             next_binding_queue.clear();

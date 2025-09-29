@@ -4,6 +4,7 @@ extern crate process_mining as pm;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::panic::panic_any;
 use process_mining::ocel::ocel_struct::{OCELEvent};
 use rustworkx_core::traversal::ancestors;
 use counter::Counter;
@@ -122,9 +123,21 @@ pub fn construct_event_object_graph(ocel: &OCEL) -> (DiGraph<String, ()>, HashMa
 
 
 fn insert_sorted(vec: &mut Vec<String>, new_id_: String) {
+    let mut new_id_ = new_id_.clone();
     
-    
-    let new_id: usize = new_id_.parse().unwrap();
+    if new_id_.parse::<usize>().is_ok() {
+        // Parsen würde funktionieren
+    } else {
+        //panic!("Event IDs must be parseable to usize for sorting. id: {}", new_id_);
+        new_id_ = new_id_.replace("event_", "");
+        if new_id_.parse::<usize>().is_ok() {
+            // Parsen würde funktionieren
+        } else {
+            panic!("Event IDs must be parseable to usize for sorting. id: {}", new_id_);
+            new_id_.replace("_", "");
+        }
+    }
+    let new_id:usize = new_id_.parse().unwrap();
 
     match vec.binary_search_by(|s| s.parse::<usize>().unwrap().cmp(&new_id)) {
         Ok(_) => {
@@ -305,6 +318,9 @@ pub fn _get_contexts_and_bindings(
                 .map(|rel| rel.object_id.clone())
                 .for_each(|object_id| {
                     let object_type = object_to_type.get(&object_id).unwrap();
+                    
+                    if object_type.contains(":"){ panic!("no : allowed")}
+                    
                     associated_objects.entry(object_type.clone())
                         .or_insert_with(HashSet::new)
                         .insert(object_id.clone());

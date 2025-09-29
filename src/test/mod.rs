@@ -1,3 +1,5 @@
+
+
 extern crate process_mining as pm;
 
 use std::cmp::PartialEq;
@@ -78,7 +80,7 @@ pub(crate) fn test_MDFA() {
     
 
 
-    
+
     
     
     //create mdfa
@@ -251,8 +253,8 @@ pub fn get_test_ocpn_small() -> OCPN {
 
 
     objects_to_types.extend(vec![
-        ("p1".to_string(), "plane".to_string()),
-        ("p2".to_string(), "plane".to_string()),
+        ("p:1".to_string(), "pla:ne".to_string()),
+        ("p2".to_string(), "pla:ne".to_string()),
         ("b1".to_string(), "baggage".to_string()),
         ("b2".to_string(), "baggage".to_string()),
         ("b3".to_string(), "baggage".to_string()),
@@ -261,49 +263,49 @@ pub fn get_test_ocpn_small() -> OCPN {
 
     let mut ocpn = OCPN::new(objects_to_types);
 
-    ocpn.add_place(Some("pl1".to_string()), "plane".to_string(), true);
+    ocpn.add_place(Some("pl1".to_string()), "pla:ne".to_string(), true);
     ocpn.add_place(Some("pl2".to_string()), "baggage".to_string(), true);
-    ocpn.add_place(Some("pl3".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl3".to_string()), "pla:ne".to_string(), false);
     ocpn.add_place(Some("pl4".to_string()), "baggage".to_string(), false);
-    ocpn.add_place(Some("pl5".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl5".to_string()), "pla:ne".to_string(), false);
     ocpn.add_place(Some("pl6".to_string()), "baggage".to_string(), false);
-    ocpn.add_place(Some("pl7".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl7".to_string()), "pla:ne".to_string(), false);
     ocpn.add_place(Some("pl8".to_string()), "baggage".to_string(), false);
-    ocpn.add_place(Some("pl9".to_string()), "plane".to_string(), false);
-    ocpn.add_place(Some("pl10".to_string()), "plane".to_string(), false);
+    ocpn.add_place(Some("pl9".to_string()), "pla:ne".to_string(), false);
+    ocpn.add_place(Some("pl10".to_string()), "pla:ne".to_string(), false);
     ocpn.add_place(Some("pl11".to_string()), "baggage".to_string(), false);
 
     ocpn.add_silent_transition("tau".to_string(), Some("tau".to_string()));
 
 
-    ocpn.add_arc(Some("pl1".to_string()),           Some("Fuel plane".to_string()),     "plane".to_string(),    Some("Fuel plane".to_string()));
+    ocpn.add_arc(Some("pl1".to_string()),           Some("Fuel plane".to_string()),     "pla:ne".to_string(),    Some("Fuel plane".to_string()));
     ocpn.add_arc(Some("pl2".to_string()),           Some("Check-in".to_string()),       "baggage".to_string(),  Some("Check-in".to_string()));
-    ocpn.add_arc(Some("Fuel plane".to_string()),    Some("pl3".to_string()),            "plane".to_string(),    Some("Fuel plane".to_string()));
+    ocpn.add_arc(Some("Fuel plane".to_string()),    Some("pl3".to_string()),            "pla:ne".to_string(),    Some("Fuel plane".to_string()));
     ocpn.add_arc(Some("Check-in".to_string()),      Some("pl4".to_string()),            "baggage".to_string(),  Some("Check-in".to_string()));
-    ocpn.add_arc(Some("pl3".to_string()),           Some("Load cargo".to_string()),     "plane".to_string(),    Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("pl3".to_string()),           Some("Load cargo".to_string()),     "pla:ne".to_string(),    Some("Load cargo".to_string()));
     ocpn.add_arc(Some("pl4".to_string()),           Some("Load cargo".to_string()),     "baggage".to_string(),  Some("Load cargo".to_string()));
     ocpn.add_arc(Some("pl4".to_string()),           Some("Load cargo".to_string()),     "baggage".to_string(),  Some("Load cargo".to_string()));
-    ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl5".to_string()),            "plane".to_string(),    Some("Load cargo".to_string()));
+    ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl5".to_string()),            "pla:ne".to_string(),    Some("Load cargo".to_string()));
     ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl6".to_string()),            "baggage".to_string(),  Some("Load cargo".to_string()));
     ocpn.add_arc(Some("Load cargo".to_string()),    Some("pl6".to_string()),            "baggage".to_string(),  Some("Load cargo".to_string()));
     ocpn.add_arc(Some("pl6".to_string()),           Some("Unload".to_string()),         "baggage".to_string(),  Some("Unload".to_string()));
     ocpn.add_arc(Some("pl6".to_string()),           Some("Unload".to_string()),         "baggage".to_string(),  Some("Unload".to_string()));
-    ocpn.add_arc(Some("pl5".to_string()),           Some("Lift off".to_string()),       "plane".to_string(),    Some("Lift off".to_string()));
+    ocpn.add_arc(Some("pl5".to_string()),           Some("Lift off".to_string()),       "pla:ne".to_string(),    Some("Lift off".to_string()));
     ocpn.add_arc(Some("pl6".to_string()),           Some("tau".to_string()),            "baggage".to_string(),  Some("tau".to_string()));
     ocpn.add_arc(Some("tau".to_string()),           Some("pl8".to_string()),            "baggage".to_string(),  Some("tau".to_string()));
-    ocpn.add_arc(Some("Lift off".to_string()),      Some("pl7".to_string()),            "plane".to_string(),    Some("Lift off".to_string()));
-    ocpn.add_arc(Some("pl7".to_string()),           Some("Unload".to_string()),         "plane".to_string(),    Some("Unload".to_string()));
+    ocpn.add_arc(Some("Lift off".to_string()),      Some("pl7".to_string()),            "pla:ne".to_string(),    Some("Lift off".to_string()));
+    ocpn.add_arc(Some("pl7".to_string()),           Some("Unload".to_string()),         "pla:ne".to_string(),    Some("Unload".to_string()));
     ocpn.add_arc(Some("Unload".to_string()),        Some("pl8".to_string()),            "baggage".to_string(),  Some("Unload".to_string()));
     ocpn.add_arc(Some("Unload".to_string()),        Some("pl8".to_string()),            "baggage".to_string(),  Some("Unload".to_string()));
-    ocpn.add_arc(Some("Unload".to_string()),        Some("pl9".to_string()),            "plane".to_string(),    Some("Unload".to_string()));
+    ocpn.add_arc(Some("Unload".to_string()),        Some("pl9".to_string()),            "pla:ne".to_string(),    Some("Unload".to_string()));
     ocpn.add_arc(Some("pl8".to_string()),           Some("Pick up @ dest".to_string()), "baggage".to_string(),  Some("Pick up @ dest".to_string()));
-    ocpn.add_arc(Some("pl9".to_string()),           Some("Clean".to_string()),          "plane".to_string(),    Some("Clean".to_string()));
-    ocpn.add_arc(Some("Clean".to_string()),         Some("pl10".to_string()),           "plane".to_string(),    Some("Clean".to_string()));
+    ocpn.add_arc(Some("pl9".to_string()),           Some("Clean".to_string()),          "pla:ne".to_string(),    Some("Clean".to_string()));
+    ocpn.add_arc(Some("Clean".to_string()),         Some("pl10".to_string()),           "pla:ne".to_string(),    Some("Clean".to_string()));
     ocpn.add_arc(Some("Pick up @ dest".to_string()),Some("pl11".to_string()),           "baggage".to_string(),  Some("Pick up @ dest".to_string()));
 
 
     let marking: Marking = HashMap::from([
-        ("pl1".to_string(), HashSet::from(["p1".to_string()])),
+        ("pl1".to_string(), HashSet::from(["p:1".to_string()])),
         ("pl2".to_string(), HashSet::from(["b1".to_string(), "b2".to_string()])),
     ]);
 
@@ -369,7 +371,7 @@ pub fn get_test_ocel_small() -> pm::OCEL {
 
     let object_types:Vec<OCELType> = vec![
         OCELType {
-            name: "plane".to_string(),
+            name: "pla:ne".to_string(),
             attributes: vec![
                 empty_attribute.clone(),
             ],
@@ -392,21 +394,21 @@ pub fn get_test_ocel_small() -> pm::OCEL {
         events: events,
         objects: vec![
             OCELObject {
-                id: "p1".to_string(),
-                object_type: "plane".to_string(),
+                id: "p:1".to_string(),
+                object_type: "pla:ne".to_string(),
                 attributes: vec![
                 ],
                 relationships: vec![
-                    OCELRelationship { qualifier: "plane".to_string(), object_id: "p1".to_string() },
+                    OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p:1".to_string() },
                 ],
             },
             OCELObject {
                 id: "p2".to_string(),
-                object_type: "plane".to_string(),
+                object_type: "pla:ne".to_string(),
                 attributes: vec![
                 ],
                 relationships: vec![
-                    OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                    OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p2".to_string() },
                 ],
             },
             OCELObject {
@@ -474,7 +476,7 @@ fn create_events() -> Vec<OCELEvent> {
                 empty_event_attribute.clone(),
             ],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p1".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p:1".to_string() },
             ],
         },
         OCELEvent {
@@ -505,7 +507,7 @@ fn create_events() -> Vec<OCELEvent> {
             time: time.add(chrono::Duration::hours(3)),
             attributes: vec![],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p1".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p:1".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b1".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b2".to_string() },
             ],
@@ -518,7 +520,7 @@ fn create_events() -> Vec<OCELEvent> {
                 empty_event_attribute.clone(),
             ],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p1".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p:1".to_string() },
             ],
         },
         OCELEvent {
@@ -527,7 +529,7 @@ fn create_events() -> Vec<OCELEvent> {
             time: time.add(chrono::Duration::hours(5)),
             attributes: vec![],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p1".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p:1".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b1".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b2".to_string() },
             ],
@@ -562,7 +564,7 @@ fn create_events() -> Vec<OCELEvent> {
                 empty_event_attribute.clone(),
             ],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p1".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p:1".to_string() },
             ],
         },
         OCELEvent {
@@ -571,7 +573,7 @@ fn create_events() -> Vec<OCELEvent> {
             time: time.add(chrono::Duration::hours(9)),
             attributes: vec![],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p2".to_string() },
             ],
         },
         OCELEvent {
@@ -598,7 +600,7 @@ fn create_events() -> Vec<OCELEvent> {
             time: time.add(chrono::Duration::hours(12)),
             attributes: vec![],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p2".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b3".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b4".to_string() },
             ],
@@ -611,7 +613,7 @@ fn create_events() -> Vec<OCELEvent> {
                 empty_event_attribute.clone(),
             ],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p2".to_string() },
             ],
         },
         OCELEvent {
@@ -620,7 +622,7 @@ fn create_events() -> Vec<OCELEvent> {
             time: time.add(chrono::Duration::hours(14)),
             attributes: vec![],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p2".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b3".to_string() },
                 OCELRelationship { qualifier: "baggage".to_string(), object_id: "b4".to_string() },
             ],
@@ -633,7 +635,7 @@ fn create_events() -> Vec<OCELEvent> {
                 empty_event_attribute.clone(),
             ],
             relationships: vec![
-                OCELRelationship { qualifier: "plane".to_string(), object_id: "p2".to_string() },
+                OCELRelationship { qualifier: "pla:ne".to_string(), object_id: "p2".to_string() },
             ],
         },
         OCELEvent {

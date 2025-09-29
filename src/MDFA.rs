@@ -325,16 +325,22 @@ pub fn get_all_rename_maps(marking: &Marking, object_to_type: &HashMap<String, S
 
     let mut rename_maps:Vec<HashMap<String, String>> = Vec::new();
 
-    let mut objects: HashMap<String, Vec<String>> = get_all_objects_of_marking(marking.clone(), object_to_type)
+    let mut objects_: HashMap<String, Vec<String>> = get_all_objects_of_marking(marking.clone(), object_to_type)
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().collect()))
         .collect();
+    
+    let DEBUG_OBJECTS = objects_.clone();
 
-    let mut permutations: HashMap<String, Vec<Vec<&String>>> = HashMap::with_capacity(objects.len());
+    let mut permutations: HashMap<String, Vec<Vec<&String>>> = HashMap::with_capacity(objects_.len());
     //sort for consistency
-    for (ot, objects) in objects.iter_mut() {
+    for (ot, objects) in objects_.iter_mut() {
         objects.sort();
         //get all permutations of objects for each type
+        //println!("object length: {}", objects.len());
+        if objects.len() > 20 {
+            panic!("Warning: number of objects for type {} is {}, which may lead to a very large number of permutations ({}!). Consider using fewer objects for type: {}. \n\n objects: {:?}", ot, objects.len(), objects.len(), ot, DEBUG_OBJECTS);
+        }
         let perms = objects.iter().permutations(objects.len()).collect_vec();
         permutations.entry(ot.clone()).or_insert_with(Vec::new).extend(perms);
     }
@@ -361,7 +367,7 @@ pub fn get_all_rename_maps(marking: &Marking, object_to_type: &HashMap<String, S
 
 
 ///abstracts a marking to a more generic representation while preserving object identity
-/// not very efficient TODO 
+/// not very efficient :(
 pub fn abstract_marking_map(marking: &Marking, object_to_type: &HashMap<String, String>) -> (Marking, HashMap<String, String>){
     //convert object ids to more generic object ids
 

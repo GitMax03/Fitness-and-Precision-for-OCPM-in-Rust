@@ -1,120 +1,218 @@
 extern crate process_mining as pm;
 
-use std::collections::{HashMap, HashSet};
-use std::time::Instant;
+use crate::enabled_model_act;
+use crate::structs_for_ocpm::OCPN;
+use crate::utils::{
+    evaluate_runtime, ocel_preprocessing, ocpn_preprocessing, save_analytics, save_analytics_2,
+};
+use crate::{
+    LOG_MODEL, NUMBER_OF_ITERATIONS, VERSION_NAME,
+    enabled_log_act,
+};
 use counter::Counter;
 use process_mining::ocel::ocel_struct::OCELEvent;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
-use crate::{enabled_log_act, DEBUG_full, DEBUG_partial, DEBUG_LEN, LOG_MODEL, NUMBER_OF_ITERATIONS, VERSION_NAME};
-use crate::enabled_model_act;
-use crate::structs_for_ocpm::OCPN;
-use crate::utils::{evaluate_runtime, save_analytics};
+use std::collections::{HashMap, HashSet};
+use std::time::Instant;
 
-//calc fitness and precision for given OCEL and OCPN
-pub fn apply(mut ocel:pm::OCEL, ocpn: OCPN) -> (f64, f64) {
-    
-    
+///calc fitness and precision for given OCEL and OCPN
+/// ocel_path is only used for saving analytics
+pub fn apply(mut ocel: pm::OCEL, ocpn_: OCPN, ocel_path: Option<&str>) -> (f64, f64) {
     let mut starting_times: Vec<Instant> = Vec::<Instant>::new();
-    #[cfg (feature = "stats")]{
+    #[cfg(feature = "stats")]
+    {
         println!("######## Evaluating with statistics ########");
 
         starting_times.push(Instant::now());
     }
 
+    //MDFA: eliminate all ":" in object ids, object types
+    ocel = ocel_preprocessing(ocel);
+    let ocpn = ocpn_preprocessing(ocpn_);
+
     println!("getting event ids, object types and id to event map ...");
     let events_ids: Vec<String> = ocel.events.iter().map(|event| event.id.clone()).collect();
-    let all_object_types: HashSet<String> = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
-    let id_to_event: HashMap<String, OCELEvent> = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
-    #[cfg(feature = "stats")]{
+    let all_object_types: HashSet<String> =
+        ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
+    let id_to_event: HashMap<String, OCELEvent> = ocel
+        .events
+        .iter()
+        .map(|e| (e.id.clone(), e.clone()))
+        .collect();
+    #[cfg(feature = "stats")]
+    {
         let mut temp: Vec<String> = Vec::new();
         let mut temp2: HashSet<String> = HashSet::new();
         let mut temp3: HashMap<String, OCELEvent> = HashMap::new();
-    
+
         for i in 1..NUMBER_OF_ITERATIONS {
             temp = ocel.events.iter().map(|event| event.id.clone()).collect();
             temp2 = ocel.object_types.iter().map(|ot| ot.name.clone()).collect();
-            temp3 = ocel.events.iter().map(|e| (e.id.clone(), e.clone())).collect();
+            temp3 = ocel
+                .events
+                .iter()
+                .map(|e| (e.id.clone(), e.clone()))
+                .collect();
         }
         starting_times.push(Instant::now());
     }
     println!("calculating presets ...");
-    let (presets, id_preset) = enabled_log_act::get_event_presets(&ocel, &id_to_event); //TODO inefficient is calculated twice
-    #[cfg(feature = "stats")]{
+    let (presets, id_preset) = enabled_log_act::get_event_presets(&ocel, &id_to_event); 
+    #[cfg(feature = "stats")]
+    {
         for i in 1..NUMBER_OF_ITERATIONS {
             enabled_log_act::get_event_presets(&ocel, &id_to_event);
         }
         starting_times.push(Instant::now());
     }
     println!("calculating contexts and bindings ...");
-    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types, &ocpn.object_to_type);
-//TODO TODO context empty????????????? HILFE
-    #[cfg(feature = "stats")]{
+    let (contexts, bindings) = enabled_log_act::_get_contexts_and_bindings(
+        &ocel,
+        &id_to_event,
+        &Some(presets.clone()),
+        &all_object_types,
+        &ocpn.object_to_type,
+    );
+    //TODO TODO context empty????????????? HILFE
+    #[cfg(feature = "stats")]
+    {
         for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_log_act::_get_contexts_and_bindings(&ocel, &id_to_event, &Some(presets.clone()), &all_object_types, &ocpn.object_to_type);
+            enabled_log_act::_get_contexts_and_bindings(
+                &ocel,
+                &id_to_event,
+                &Some(presets.clone()),
+                &all_object_types,
+                &ocpn.object_to_type,
+            );
         }
         starting_times.push(Instant::now());
     }
     //debug
     //let mut contexts_: Vec<_> = contexts.iter().collect();
     //contexts_.sort_by_key(|(k, _)| k.parse::<u32>().unwrap_or(0));
-   
-    
+
     println!("calculating enabled log activities ...");
-    let (enabled_log_activities, context_map) = enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
-    #[cfg(feature = "stats")]{
+    let (enabled_log_activities, context_map) =
+        enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
+    #[cfg(feature = "stats")]
+    {
         for i in 1..NUMBER_OF_ITERATIONS {
             enabled_log_act::get_enabled_log_activities(&contexts, &id_to_event);
         }
         starting_times.push(Instant::now());
     }
     println!("calculating enabled model activities ...");
-    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event, &id_preset);
+    let enabled_model_activities = enabled_model_act::get_enabled_model_activities_(
+        &ocpn,
+        &bindings,
+        &contexts,
+        &context_map,
+        &all_object_types,
+        &id_to_event,
+        &id_preset,
+    );
     //let enabled_model_activities = enabled_model_act::get_enabled_model_activities(&ocpn, &ocel, &presets, &bindings, &contexts_map);
-    #[cfg(feature = "stats")]{
+    #[cfg(feature = "stats")]
+    {
         for i in 1..NUMBER_OF_ITERATIONS {
-            enabled_model_act::get_enabled_model_activities_(&ocpn, &bindings, &contexts, &context_map,  &all_object_types, &id_to_event, &id_preset);
+            enabled_model_act::get_enabled_model_activities_(
+                &ocpn,
+                &bindings,
+                &contexts,
+                &context_map,
+                &all_object_types,
+                &id_to_event,
+                &id_preset,
+            );
         }
         starting_times.push(Instant::now());
     }
 
-    
     println!("calculating fitness and precision ...");
+
+    let (fitness, precision) = calculate_fitness_and_precision(
+        events_ids.clone(),
+        &enabled_log_activities,
+        &enabled_model_activities,
+    );
     
-    let (fitness, precision) = calculate_fitness_and_precision(events_ids.clone(), &enabled_log_activities, &enabled_model_activities);
-    #[cfg(feature = "stats")]{
+    let end_time = Instant::now();
+    
+    #[cfg(feature = "stats")]
+    {
         for i in 1..NUMBER_OF_ITERATIONS {
-            calculate_fitness_and_precision(events_ids.clone(), &enabled_log_activities, &enabled_model_activities);
+            calculate_fitness_and_precision(
+                events_ids.clone(),
+                &enabled_log_activities,
+                &enabled_model_activities,
+            );
         }
-        starting_times.push(Instant::now());
+        starting_times.push(end_time.clone());
     }
-    
 
     //evaluate runtime
     #[cfg(feature = "stats")]
-    evaluate_runtime( &starting_times, &vec!["get event ids".to_string(), "get presets".to_string(), "get context and bindings".to_string(),
-                                             "get enabled log activities".to_string(),
-                                            "get enabled model activities".to_string(), "calculate fitness and precision".to_string()]);
+    evaluate_runtime(
+        &starting_times,
+        &vec![
+            "get event ids".to_string(),
+            "get presets".to_string(),
+            "get context and bindings".to_string(),
+            "get enabled log activities".to_string(),
+            "get enabled model activities".to_string(),
+            "calculate fitness and precision".to_string(),
+        ],
+        end_time.clone(),
+    );
     #[cfg(feature = "save_stats")]
-    save_analytics(VERSION_NAME.to_string(), LOG_MODEL.to_string(), &starting_times, &vec!["get event ids".to_string(), "get presets".to_string(), "get context and bindings".to_string(),
-                                                             "get enabled log activities".to_string(),
-                                                            "get enabled model activities".to_string(), "calculate fitness and precision".to_string()]);
+    save_analytics(
+        VERSION_NAME.to_string(),
+        LOG_MODEL.to_string(),
+        &starting_times,
+        &vec![
+            "pre-prepping".to_string(),
+            "get presets".to_string(),
+            "get context and bindings".to_string(),
+            "get enabled log activities".to_string(),
+            "get enabled model activities".to_string(),
+            "calculate fitness and precision".to_string(),
+        ],
+    );
     
-    
+    if ocel_path.is_some() {
+        save_analytics_2(
+            ocel_path.unwrap(),
+            &starting_times,
+            &vec![
+                "pre-prepping".to_string(),
+                "get presets".to_string(),
+                "get context and bindings".to_string(),
+                "get enabled log activities".to_string(),
+                "get enabled model activities".to_string(),
+                "calculate fitness and precision".to_string(),
+            ],
+            end_time.clone(),
+        );
+    }
+
     (fitness, precision)
 }
 
-
-fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activities: &HashMap<String,HashSet<String>>, enabled_model_activities: &FxHashMap<String, FxHashSet<String>>) -> (f64,f64){
-    #[cfg(feature = "progress-percentage")]{
+fn calculate_fitness_and_precision(
+    events_ids: Vec<String>,
+    enabled_log_activities: &HashMap<String, HashSet<String>>,
+    enabled_model_activities: &FxHashMap<String, FxHashSet<String>>,
+) -> (f64, f64) {
+    #[cfg(feature = "progress-percentage")]
+    {
         println!("Calculating fitness and precision");
     }
-
 
     let mut fitness: f64 = 0.0;
     let mut precision: f64 = 0.0;
 
     let mut skiped_events = 0;
-    
+
     /*
     for event_id in &events_ids {
 
@@ -123,7 +221,7 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
 
         let fit_denominator = enabled_log_activities.get(event_id).unwrap().len() as f64;
         let prec_denominator = enabled_model_activities.get(event_id).unwrap().len() as f64;
-        
+
         if fit_denominator == 0.0 || prec_denominator == 0.0{
             skiped_events += 0;
         }
@@ -144,7 +242,7 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
         println!("Fit denominator: {}", fit_denominator);
         println!("Prec denominator: {}", prec_denominator);
         println!("-----------------------------------------");
-        
+
          */
 
         fitness = fitness + numerator / fit_denominator;
@@ -153,27 +251,31 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
 
     fitness = fitness / events_ids.len() as f64;
     precision = precision / (events_ids.len() - skiped_events ) as f64;
-    
+
     (fitness, precision)
-    
+
      */
-    
+
     //DEBUG:
-    let mut en_log_vec: Vec<(String, &HashSet<String>)> = enabled_log_activities.iter().map(|(id, acts)| (id.clone(), acts)).collect();
+    let mut en_log_vec: Vec<(String, &HashSet<String>)> = enabled_log_activities
+        .iter()
+        .map(|(id, acts)| (id.clone(), acts))
+        .collect();
     en_log_vec.sort_by(|(a_id, _), (b_id, _)| {
-        a_id.parse::<u32>().unwrap_or(0).cmp(&b_id.parse::<u32>().unwrap_or(0))
+        a_id.parse::<u32>()
+            .unwrap_or(0)
+            .cmp(&b_id.parse::<u32>().unwrap_or(0))
     });
-    let mut en_model_vec: Vec<(String, HashSet<String, FxBuildHasher>)> =
-        enabled_model_activities.iter()
-            .map(|(id, acts)| (id.clone(), acts.clone()))
-            .collect();
+    let mut en_model_vec: Vec<(String, HashSet<String, FxBuildHasher>)> = enabled_model_activities
+        .iter()
+        .map(|(id, acts)| (id.clone(), acts.clone()))
+        .collect();
     en_model_vec.sort_by(|(a_id, _), (b_id, _)| {
-        a_id.parse::<u32>().unwrap_or(0).cmp(&b_id.parse::<u32>().unwrap_or(0))
+        a_id.parse::<u32>()
+            .unwrap_or(0)
+            .cmp(&b_id.parse::<u32>().unwrap_or(0))
     });
-    
-    
-    
-    
+
     //-----
     let mut precisions: Vec<f64> = Vec::new();
     let mut fitnesses: Vec<f64> = Vec::new();
@@ -182,59 +284,63 @@ fn calculate_fitness_and_precision(events_ids: Vec<String>, enabled_log_activiti
     for event_id in &events_ids {
         let en_log_act = enabled_log_activities.get(event_id).unwrap();
         let en_model_act = enabled_model_activities.get(event_id).unwrap();
-        
+
         //debug
         /*
         if !vec!["7498".to_string(), "7497".to_string(), "7496".to_string()].contains(event_id) { continue; }
         println!("\n-------------------");
         println!("en model activities for event {}: {:?}", event_id, en_model_act);
         println!("en log activities for event {}: {:?}", event_id, en_log_act);
-        
-         */
-        
-        let en_log_act_Fx:FxHashSet<String> = en_log_act.into_iter().cloned().collect();
-        if en_model_act.is_empty() || en_model_act.intersection(&en_log_act_Fx).count() == 0 {
 
-            if en_model_act.is_empty(){
-                println!("LEN: event id {} not found in enabled model activities!!!", event_id);
-                DEBUG_LEN.write().unwrap().insert(event_id.clone());
-            }else{
-                println!("INTER: event id {} not found in enabled model activities!", event_id);
+         */
+
+        let en_log_act_Fx: FxHashSet<String> = en_log_act.into_iter().cloned().collect();
+        if en_model_act.is_empty() || en_model_act.intersection(&en_log_act_Fx).count() == 0 {
+            if en_model_act.is_empty() {
+                println!(
+                    "LEN: event id {} not found in enabled model activities!!!",
+                    event_id
+                );
+                
+            } else {
+                println!(
+                    "INTER: event id {} not found in enabled model activities!",
+                    event_id
+                );
             }
-            
+
             skipped_events += 1;
             fitnesses.push(0.0);
             continue; // Skip this event if either set is empty
         }
-        
+
         precisions.push(
-            en_model_act.intersection(&en_log_act_Fx).count() as f64 / en_model_act.len() as f64
+            en_model_act.intersection(&en_log_act_Fx).count() as f64 / en_model_act.len() as f64,
         );
         fitnesses.push(
-            en_model_act.intersection(&en_log_act_Fx).count() as f64 / en_log_act.len() as f64
+            en_model_act.intersection(&en_log_act_Fx).count() as f64 / en_log_act.len() as f64,
         );
     }
-    
-    if fitnesses.len() == 0{
+
+    if fitnesses.len() == 0 {
         //println!("fitnesses is empty, returning (0.0, 0.0)");
-        return (0.0,0.0);
+        return (0.0, 0.0);
     }
-    if precisions.len() == 0{
+    if precisions.len() == 0 {
         //println!("precisions is empty");
         return (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, 0.0);
     }
+
+    //println!("\nDEBUG:-----------------------");
     
-    println!("\nDEBUG:-----------------------");
-    println!("full events:{:?} \n partial events:{:?} \n LEN:{:?}", DEBUG_full.read().unwrap().len(), DEBUG_partial.read().unwrap().len(), DEBUG_LEN.read().unwrap().len());
     //println!("Intersection full/len: {:?}\n", DEBUG_full.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).cloned().collect::<Vec<String>>());
     //println!("Intersection partial/len: {:?}\n", DEBUG_partial.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).cloned().collect::<Vec<String>>());
     //println!("Intersection full/partial: {:?}\n------\n", DEBUG_full.read().unwrap().intersection(&DEBUG_partial.read().unwrap()).cloned().collect::<Vec<String>>());
     //println!("Intersection full/len length: {}", DEBUG_full.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).count());
     //println!("Intersection partial/len length: {}", DEBUG_partial.read().unwrap().intersection(&DEBUG_LEN.read().unwrap()).count());
-    
-    (fitnesses.iter().sum::<f64>() / fitnesses.len() as f64, precisions.iter().sum::<f64>() / precisions.len() as f64)
-    
+
+    (
+        fitnesses.iter().sum::<f64>() / fitnesses.len() as f64,
+        precisions.iter().sum::<f64>() / precisions.len() as f64,
+    )
 }
-
-
-

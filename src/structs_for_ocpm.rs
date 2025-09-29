@@ -661,6 +661,11 @@ impl OCPN {
     pub fn execute_binding_(&self, binding: &(String, HashMap<String, HashSet<String>>), marking: &Marking) -> Marking{
         ///binding must be executable
         //Binding: (activity, [object_types: object_ids])
+        
+        
+        
+        
+        
         let mut res_marking = marking.clone(); //clone marking to modify it
         let mut temp_binding = binding.clone(); //clone binding to modify it
         //TODO: what to do if there are mutliple transitions
@@ -700,10 +705,21 @@ impl OCPN {
                     res_marking.remove(&place_id);
                 }
             }
+            //DEBUG
+            let DEBUG = self.transitions.get(&transition_id.clone());
+            
+            
             //add objects from output places
             for (place_id, object_type) in self.transitions.get(transition_id).unwrap_or_else(||self.silent_transtions.get(&binding.0).unwrap()).output_places.iter() {
+                
+                if !binding.1.contains_key(object_type) {
+                    println!("DEBUG");
+                }
+                
                 res_marking.entry(place_id.clone()).or_insert_with(HashSet::new)
-                    .extend(binding.1.get(object_type).unwrap().clone());
+                    .extend(binding.1.get(object_type).unwrap_or_else(||{
+                        panic!("No objects of type {} found in binding for binding {:?}", object_type, binding.1);
+                    }).clone());
             }
             break;
         }
